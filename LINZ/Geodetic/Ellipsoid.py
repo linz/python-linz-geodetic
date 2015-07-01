@@ -3,7 +3,7 @@
 import numpy as np
 import math
 
-class ellipsoid( object ):
+class Ellipsoid( object ):
 
     convergence=1.0e-10
 
@@ -18,8 +18,8 @@ class ellipsoid( object ):
         Returns an array defining the east, north, and up unit vectors
         at a specified latitude and longitude
         '''
-        cln,sln = ellipsoid._cossin(lon)
-        clt,slt = ellipsoid._cossin(lat)
+        cln,sln = Ellipsoid._cossin(lon)
+        clt,slt = Ellipsoid._cossin(lat)
         ve=np.array([-sln,cln,0])
         vn=np.array([-cln*slt,-sln*slt,clt])
         vu=np.array([clt*cln,clt*sln,slt])
@@ -59,8 +59,8 @@ class ellipsoid( object ):
         if hgt is None:
             hgt=0
 
-        cln,sln = ellipsoid._cossin(lon)
-        clt,slt = ellipsoid._cossin(lat)
+        cln,sln = Ellipsoid._cossin(lon)
+        clt,slt = Ellipsoid._cossin(lat)
         bsac=np.hypot(self.b*slt,self.a*clt)
         p = self.a2*clt/bsac + hgt*clt
         
@@ -75,8 +75,8 @@ class ellipsoid( object ):
         Calculate the number of metres per degree east and
         north
         '''
-        cln,sln = ellipsoid._cossin(lon)
-        clt,slt = ellipsoid._cossin(lat)
+        cln,sln = Ellipsoid._cossin(lon)
+        clt,slt = Ellipsoid._cossin(lat)
         bsac=np.hypot(self.b*slt,self.a*clt)
         p = self.a2*clt/bsac + hgt*clt
         dedln=np.radians(p)
@@ -114,7 +114,7 @@ class ellipsoid( object ):
         result=np.vstack(result).transpose()
         return result[0] if single else result
 
-grs80 = ellipsoid(6378137.0,298.257222101)
+GRS80 = Ellipsoid(6378137.0,298.257222101)
 
 def main():
     import sys
@@ -152,9 +152,9 @@ def main():
         print "Need the name of an output file"
         sys.exit()
 
-    ell=grs80
+    ell=GRS80
     if args.ellipsoid:
-        ell=ellipsoid(args[0],args[1])
+        ell=Ellipsoid(args[0],args[1])
 
     if args.xyz:
         llh=ell.geodetic(args.xyz)

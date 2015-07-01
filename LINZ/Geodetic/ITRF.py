@@ -112,23 +112,23 @@ def dateAsYear( dvalue ):
     return year+(dt.days+dt.seconds/(24.0*60*60))/dty
 
 
-class ITRF_transformation( object ):
+class Transformation( object ):
 
     @staticmethod
     def transformation( to_itrf=ITRF_ref, from_itrf=ITRF_ref ):
         '''
         Determine the transformation from one ITRF realisation to another,
-        returns an ITRF_transformation object.
+        returns an Transformation object.
         '''
         rffrom=None
         rfto=None
         for p in ITRF_params:
             if p[0] == to_itrf:
-                rfto=ITRF_transformation(ITRF_ref,p[0],p[1],p[2],refdate)
+                rfto=Transformation(ITRF_ref,p[0],p[1],p[2],refdate)
                 if from_itrf==ITRF_ref:
                     return rfto
             if p[0] == from_itrf:
-                rffrom=ITRF_transformation(ITRF_ref,p[0],p[1],p[2],refdate).reversed()
+                rffrom=Transformation(ITRF_ref,p[0],p[1],p[2],refdate).reversed()
                 if to_itrf==ITRF_ref:
                     return rffrom
         if not rffrom:
@@ -165,7 +165,7 @@ class ITRF_transformation( object ):
                     if self.rates and self.refdate else ''))
 
     def reversed( self ):
-        return ITRF_transformation(
+        return Transformation(
             self.rfto,
             self.rffrom,
             [-p for p in self.params],
@@ -183,7 +183,7 @@ class ITRF_transformation( object ):
             for i,r in enumerate(self.rates):
                 p[i]=self.params[i] + r*diff
             refdate = date
-        return ITRF_transformation(
+        return Transformation(
             self.rffrom,
             self.rfto,
             p,
@@ -205,7 +205,7 @@ class ITRF_transformation( object ):
         if refdate and refdate != other.refdate:
             other=other.atDate(refdate)
 
-        return ITRF_transformation(
+        return Transformation(
             rffrom,
             rfto,
             [p1+p2 for p1,p2 in zip(self.params,other.params)],
@@ -273,14 +273,14 @@ class ITRF_transformation( object ):
 
         Uses numpy for efficient processing of arrays of coordinates
         '''
-        from ellipsoid import grs80
-        xyz=grs80.xyz(lon,lat,hgt)
+        from Ellipsoid import GRS80
+        xyz=GRS80.xyz(lon,lat,hgt)
         xyz=self.transform(xyz,date=date)
-        return grs80.geodetic(xyz)
+        return GRS80.geodetic(xyz)
 
-transformation=ITRF_transformation.transformation
-#itrf2008_nzgd2000=ITRF_transformation.transformation(from_itrf='ITRF2008')
-#nzgd2000_itrf2008=ITRF_transformation.transformation(to_itrf='ITRF2008')
+transformation=Transformation.transformation
+#itrf2008_nzgd2000=Transformation.transformation(from_itrf='ITRF2008')
+#nzgd2000_itrf2008=Transformation.transformation(to_itrf='ITRF2008')
 
 def main():
     import sys
@@ -343,7 +343,7 @@ def main():
             dt=float(args.date)
     year=dateAsYear(dt)
 
-    tfm=ITRF_transformation.transformation(from_itrf=from_itrf,to_itrf=to_itrf).atDate(year)
+    tfm=Transformation.transformation(from_itrf=from_itrf,to_itrf=to_itrf).atDate(year)
 
     if args.list:
         print tfm
