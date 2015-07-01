@@ -112,30 +112,7 @@ def dateAsYear( dvalue ):
     return year+(dt.days+dt.seconds/(24.0*60*60))/dty
 
 
-class Transformation( object ):
-
-    @staticmethod
-    def transformation( to_itrf=ITRF_ref, from_itrf=ITRF_ref ):
-        '''
-        Determine the transformation from one ITRF realisation to another,
-        returns an Transformation object.
-        '''
-        rffrom=None
-        rfto=None
-        for p in ITRF_params:
-            if p[0] == to_itrf:
-                rfto=Transformation(ITRF_ref,p[0],p[1],p[2],refdate)
-                if from_itrf==ITRF_ref:
-                    return rfto
-            if p[0] == from_itrf:
-                rffrom=Transformation(ITRF_ref,p[0],p[1],p[2],refdate).reversed()
-                if to_itrf==ITRF_ref:
-                    return rffrom
-        if not rffrom:
-            raise RuntimeError(from_itrf+' is not a recognized ITRF')
-        if not rfto:
-            raise RuntimeError(to_itrf+' is not a recognized ITRF')
-        return rffrom.add(rfto)
+class BursaWolf14Transformation( object ):
 
     def __init__( self, rffrom, rfto, params, rates=None, refdate=refdate, source=None ):
         self.rffrom=rffrom
@@ -165,7 +142,7 @@ class Transformation( object ):
                     if self.rates and self.refdate else ''))
 
     def reversed( self ):
-        return Transformation(
+        return BursaWolf14Transformation(
             self.rfto,
             self.rffrom,
             [-p for p in self.params],
@@ -183,7 +160,7 @@ class Transformation( object ):
             for i,r in enumerate(self.rates):
                 p[i]=self.params[i] + r*diff
             refdate = date
-        return Transformation(
+        return BursaWolf14Transformation(
             self.rffrom,
             self.rfto,
             p,
@@ -205,7 +182,7 @@ class Transformation( object ):
         if refdate and refdate != other.refdate:
             other=other.atDate(refdate)
 
-        return Transformation(
+        return BursaWolf14Transformation(
             rffrom,
             rfto,
             [p1+p2 for p1,p2 in zip(self.params,other.params)],
@@ -278,7 +255,29 @@ class Transformation( object ):
         xyz=self.transform(xyz,date=date)
         return GRS80.geodetic(xyz)
 
-transformation=Transformation.transformation
+
+def Transformation( to_itrf=ITRF_ref, from_itrf=ITRF_ref ):
+    '''
+    Determine the transformation from one ITRF realisation to another,
+    returns an Transformation object.
+    '''
+    rffrom=None
+    rfto=None
+    for p in ITRF_params:
+        if p[0] == to_itrf:
+            rfto=BursaWolf14Transformation(ITRF_ref,p[0],p[1],p[2],refdate)
+            if from_itrf==ITRF_ref:
+                return rfto
+        if p[0] == from_itrf:
+            rffrom=BursaWolf14Transformation(ITRF_ref,p[0],p[1],p[2],refdate).reversed()
+            if to_itrf==ITRF_ref:
+                return rffrom
+    if not rffrom:
+        raise RuntimeError(from_itrf+' is not a recognized ITRF')
+    if not rfto:
+        raise RuntimeError(to_itrf+' is not a recognized ITRF')
+    return rffrom.add(rfto)
+
 #itrf2008_nzgd2000=Transformation.transformation(from_itrf='ITRF2008')
 #nzgd2000_itrf2008=Transformation.transformation(to_itrf='ITRF2008')
 
@@ -343,7 +342,7 @@ def main():
             dt=float(args.date)
     year=dateAsYear(dt)
 
-    tfm=Transformation.transformation(from_itrf=from_itrf,to_itrf=to_itrf).atDate(year)
+    tfm=Transformation(from_itrf=from_itrf,to_itrf=to_itrf).atDate(year)
 
     if args.list:
         print tfm
