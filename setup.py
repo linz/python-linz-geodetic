@@ -84,7 +84,7 @@ setup(
     },
 
     # Namespace package - other modules may include into these packages
-    namespace_packages=['LINZ','LINZ.geodetic'],
+    namespace_packages=['LINZ','LINZ.Geodetic'],
     
     # To provide executable scripts, use entry points in preference to the
     # "scripts" keyword. Entry points provide cross-platform support and allow
