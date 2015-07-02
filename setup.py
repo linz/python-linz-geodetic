@@ -91,7 +91,7 @@ setup(
     # pip to create the appropriate form of executable for the target platform.
     entry_points={
         'console_scripts': [
-            'ellipsoid=LINZ.geodetic.ellipsoid:main',
+            'ellipsoid=LINZ.Geodetic.Ellipsoid:main',
         ],
     },
 )
