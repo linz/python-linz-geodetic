@@ -75,7 +75,7 @@ class Reader( object ):
         self._solutions=solutions
         self._monuments=monuments
 
-    def get( self, ptid=None, ptcode=None, solnid=None, monument=None, exceptionIfNone=False ):
+    def get( self, ptid=None, ptcode=None, solnid=None, monument=None, exceptionIfNone=False, allSolutions=False ):
         '''
         Get a specific solution.  Can either specify a ptid or a monument.  If this is ambiguous then
         a ptcode and solnid may also be supplied).
@@ -102,32 +102,36 @@ class Reader( object ):
             if exceptionIfNone:
                 raise RuntimeError('No Sinex solution found matching request')
             return None
-        if len(solutions) > 1:
+        if len(solutions) > 1 and not allSolutions:
             raise RuntimeError('Ambiguous Sinex solution requested')
 
-        ptid,ptcode,solnid=solutions[0]
-        site=self._sites[ptid,ptcode]
-        epoch=self._epochs[ptid,ptcode,solnid]
-        coord=self._coords[ptid,ptcode,solnid]
-        ncvr,prmids=coord.prmids
-        covar=None
-        if ncvr < len(self._covariances):
-            covar=self._covariances[ncvr]
-        else:
-            ncvr=None
-            prmids=None
-        return Reader.Solution(
-            ptid,ptcode,solnid,
-            site.monument if site is not None else ptid,
-            site.description if site is not None else '',
-            site.llh if site is not None else None,
-            epoch.start if epoch is not None else None,
-            epoch.end if epoch is not None else None,
-            coord.crddate,
-            coord.xyz,
-            coord.vxyz,
-            prmids,
-            covar)
+
+        results=[]
+        for ptid,ptcode,solnid in solutions:
+            site=self._sites[ptid,ptcode]
+            epoch=self._epochs[ptid,ptcode,solnid]
+            coord=self._coords[ptid,ptcode,solnid]
+            ncvr,prmids=coord.prmids
+            covar=None
+            if ncvr < len(self._covariances):
+                covar=self._covariances[ncvr]
+            else:
+                ncvr=None
+                prmids=None
+            results.append(Reader.Solution(
+                ptid,ptcode,solnid,
+                site.monument if site is not None else ptid,
+                site.description if site is not None else '',
+                site.llh if site is not None else None,
+                epoch.start if epoch is not None else None,
+                epoch.end if epoch is not None else None,
+                coord.crddate,
+                coord.xyz,
+                coord.vxyz,
+                prmids,
+                covar))
+
+        return results if allSolutions else results[0]
 
     def _open( self ):
         if self._fh:
