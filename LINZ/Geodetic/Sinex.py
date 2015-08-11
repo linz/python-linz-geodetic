@@ -26,7 +26,7 @@ class Reader( object ):
         '''
         Load a SINEX file. Options are:
 
-            useCodes        a list of codes to load (default is all) 
+            selectCodes     a list of codes to load (default is all) 
             readVelocities  read velocities as well as xyz
             covariance      covariance option, one of COVAR_FULL, COVAR_STATION, COVAR_NONE
             readCovariance  read a covariance matrix
@@ -162,6 +162,8 @@ class Reader( object ):
                 sections.append(section)
                 if section in Reader._scanners:
                     Reader._scanners[section](self)
+                    if section=='SOLUTION/ESTIMATE' and self._covarianceOption==Reader.COVAR_NONE:
+                        break
                 else:
                     self._skipSection(section)
         finally:
@@ -193,7 +195,7 @@ class Reader( object ):
         if y==0 and d==0 and s==0:
             return None
         year=y+1900 if y > 50 else y+2000
-        return datetime(year,1,1)+timedelta(days=d,seconds=s)
+        return datetime(year,1,1)+timedelta(days=d-1,seconds=s)
 
     def _scanSection( self, section, recordre ):
         '''
