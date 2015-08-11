@@ -17,6 +17,13 @@ class Ellipsoid( object ):
         '''
         Returns an array defining the east, north, and up unit vectors
         at a specified latitude and longitude
+
+        To convert an xyz offset to an enu offset, use as an example
+        
+           enu_axes=GRS80.enu_axes(lon,lat)
+           denu=enu_axes.dot(dxyz)
+           dxyz=enu_axes.T.dot(denu)
+
         '''
         cln,sln = Ellipsoid._cossin(lon)
         clt,slt = Ellipsoid._cossin(lat)
