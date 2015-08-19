@@ -27,9 +27,8 @@ class Reader( object ):
         Load a SINEX file. Options are:
 
             selectCodes     a list of codes to load (default is all) 
-            readVelocities  read velocities as well as xyz
+            velocities      read velocities as well as xyz
             covariance      covariance option, one of COVAR_FULL, COVAR_STATION, COVAR_NONE
-            readCovariance  read a covariance matrix
 
         '''
         self._filename=filename
@@ -108,8 +107,8 @@ class Reader( object ):
 
         results=[]
         for ptid,ptcode,solnid in solutions:
-            site=self._sites[ptid,ptcode]
-            epoch=self._epochs[ptid,ptcode,solnid]
+            site=self._sites.get((ptid,ptcode))
+            epoch=self._epochs.get((ptid,ptcode,solnid))
             coord=self._coords[ptid,ptcode,solnid]
             ncvr,prmids=coord.prmids
             covar=None
@@ -130,6 +129,8 @@ class Reader( object ):
                 coord.vxyz,
                 prmids,
                 covar))
+
+        results.sort(key=lambda x: (x.id,x.code,x.soln))
 
         return results if allSolutions else results[0]
 
@@ -173,8 +174,8 @@ class Reader( object ):
         if self._fh is None:
             raise RuntimeError('Cannot read from unopened SINEX file '+self._filename)
         line=self._fh.readline()
-        if line != '':
-            self._lineno += 1
+        if line == '': return None
+        self._lineno += 1
         return line.rstrip()
 
     def _readError( self, message ):
@@ -203,9 +204,8 @@ class Reader( object ):
         '''
         while True: 
             line=self._readline()
-            if line == '':
+            if line is None:
                 self._readError(section+' not terminated')
-            line=line.rstrip()
             if line == '':
                 continue
             cmdchar=line[0]
@@ -231,9 +231,8 @@ class Reader( object ):
         section=None
         while True:
             line=self._readline()
-            if line == '':
+            if line is None:
                 break
-            line=line.rstrip()
             if line == '%ENDSNX':
                 break
             if line=='':
@@ -335,7 +334,7 @@ class Reader( object ):
         coords={}
         prmlookup={}
 
-        usevel=self._options.get('useVelocity')
+        usevel=self._options.get('velocities')
         useprms=('STAX','STAY','STAZ','VELX','VELY','VELZ') if usevel else ('STAX','STAY','STAZ')
         nprm=6 if usevel else 3
         covarOption=self._covarianceOption

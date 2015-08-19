@@ -190,7 +190,7 @@ class BursaWolf14Transformation( object ):
              else other.rates if self.rates is None 
              else [p1+p2 for p1,p2 in zip(self.rates,other.rates)]),
             refdate,
-            source if self.source == other.source else None
+            self.source if self.source == other.source else None
             )
 
     def subtract( self, other ):
