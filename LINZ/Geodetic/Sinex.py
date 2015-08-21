@@ -5,8 +5,10 @@ import sys
 from collections import namedtuple
 from datetime import datetime, timedelta
 import gzip
+import math
 import re
 import numpy as np
+from LINZ.Geodetic.Ellipsoid import GRS80
 
 class Reader( object ):
 
@@ -436,4 +438,306 @@ Reader._scanners={
         'SOLUTION/EPOCHS': Reader._scanSolutionEpoch,
         'SOLUTION/ESTIMATE': Reader._scanSolutionEstimate,
         'SOLUTION/MATRIX_ESTIMATE L COVA': Reader._scanSolutionMatrixEstimate,
-    }
+        }
+
+
+class Writer( object ):
+    '''
+    The Sinex.Writer class is most simply used as a context manager.  The usage is
+
+    with Sinex.Writer(filename) as snx:
+        snx.addFileInfo(...)
+        snx.setObsDateRange(startdate,enddate)
+        snx.setSolutionStatistics(varianceFactor,sumSquaredResiduals,nObs,nUnknowns )
+        for m in marks:
+            snx.addMark(m.code, ... )
+            snx.addSolution(m,xyz,xyzprms)
+        snx.setCovariance(covar)
+
+    Alternatively can be used as an ordinary object, in which case a final call
+    to snx.write() is required to create the file.
+    '''
+
+    Mark=namedtuple('Mark','mark id code monument description solutions')
+    Solution=namedtuple('Solution','solnid xyz params vxyz vparams startdate enddate')
+
+    def __init__( self, filename, **info ):
+        self._filename=filename
+        self._fileRefInfo={}
+        self._comments=[]
+        self._written=False
+        self._agency='---'
+        self._version='2.10'
+        self._constraint='2'
+        self._stats=None
+        self._startdate=None
+        self._enddate=None
+        self._marks={}
+        self._covariance=None
+        self._varfactor=1.0
+        self.addFileInfo( **info )
+
+    def __enter__( self ):
+        return self
+
+    def __exit__(self,exctype,value,traceback):
+        if exctype is None:
+            if not self._written:
+                self.write()
+
+    def addFileInfo( self, **info ):
+        '''
+        Add file header information, any of:
+
+            description
+            output
+            contact
+            software
+            hardware
+            input
+            agency
+            comment
+            constraint
+        '''
+        for item, value in info.iteritems():
+            item=item.upper()
+            if item in ('DESCRIPTION','OUTPUT','CONTACT','SOFTWARE','HARDWARE','INPUT'):
+                self._fileRefInfo[item]=value
+            elif item == 'COMMENT':
+                self._comments.extend(value.split('\n'))
+            elif item == 'AGENCY':
+                self._agency=value.upper()[:3]
+            elif item == 'CONSTRAINT':
+                if value not in ('0','1','2'):
+                    raise RuntimeError('Invalid SINEX constraint code '+value+' specified')
+                self._constraint=value
+
+    def setSolutionStatistics( self, varianceFactor, sumSquaredResiduals, nObs, nUnknowns ):
+        '''
+        Set the solution statistics values
+           variance factor
+           sum of squared residuals
+           number of observations
+           number of unknowns
+        '''
+        self.stats=[varianceFactor,sumSquaredResiduals,nObs, nUnknowns ]
+
+    def setObsDateRange( self, startdate, enddate ):
+        '''
+        Set the date range of the observations
+        '''
+        self._startdate=startdate
+        self._enddate=enddate
+
+    def addMark( self, mark, id=None, code=None, monument=None, description=None ):
+        '''
+        Add a mark to the solution.  Can specify the id, code, monument name, and
+        description used to identify the mark
+        '''
+        id=(id or mark).upper()[:4]
+        code=(code or 'A')[:2]
+        monument=(monument or mark).upper()[:9]
+        description=description or ''
+        self._marks[mark]=Writer.Mark(mark,id,code,monument,description,[])
+
+    def addSolution( self, mark, xyz, params, vxyz=None, vparams=None, startdate=None, enddate=None):
+        '''
+        Add a coordinate solution to the sinex file.  Specifies:
+            mark (which must have been added with addMark), 
+            xyz coordinate components [x,y,z], 
+            params efining the row numbers of each ordinate in the covariance matrix (px,py,pz),
+            vxyz (optional) velocity components
+            vparams (optional) parameter numbers of velocity components
+            startdate (optional) start date of applicability of the solution
+            enddate (optional) end date of applicability of the solution
+        '''
+        if mark not in self._marks:
+            raise RuntimeError("Cannot add solution for "+mark+" to SINEX file: mark not defined")
+        if len(xyz) != 3 or len(params) != 3:
+            raise RuntimeError("Invalid coordinate xyz or params specified for mark "+mark)
+        params=list(params)
+        if vxyz is not None:
+            if len(vxyz) != 3 or len(vparams) != 3:
+                raise RuntimeError("Invalid coordinate xyz or params specified for mark "+mark)
+            vparams=list(vparams)
+        else:
+            vparams=None
+        
+        solnid="{0:04d}".format(len(self._marks[mark].solutions)+1)
+        self._marks[mark].solutions.append(
+            Writer.Solution(solnid,xyz,params,vxyz,vparams,startdate,enddate))
+
+    def setCovariance( self, covariance, varianceFactor=1.0 ):
+        '''
+        Define the covariance matrix for the ordinates. (numpy nxn array)
+        '''
+        self._covariance=covariance
+        self._varfactor=varianceFactor
+
+    def _sinexEpoch( self, date=None  ):
+        if date is None:
+            date=datetime.now()
+        diff=date-datetime(date.year,1,1)
+        year=date.year-1900
+        if year > 99:
+            year -= 100
+        return "{0:02d}:{1:03d}:{2:05d}".format(year,diff.days+1,diff.seconds)
+
+    def _sinexDms( self, angle ):
+        sign=-1 if angle < 0 else 1
+        angle=abs(angle)
+        angle += 1.0/(3600*10) # For rounding seconds to 1dp
+        deg=int(angle)
+        angle = (angle - deg)*60
+        min=int(angle)
+        angle=(angle-min)*60
+        angle -= 0.1 # Finish rounding fix
+        if angle < 0:
+            angle=0.0
+        if deg > 0:
+            deg *= sign
+        elif min > 0:
+            min *= sign
+        else:
+            angle *= sign
+        return "{0:3d}{1:3d}{2:5.1f}".format(deg,min,angle)
+
+
+    def write( self ):
+        '''
+        Write the file - can only be called once.  If Writer is used as a context manager
+        this is called when the context closes.
+        '''
+        if self._written:
+            raise RuntimeError("Cannot write already written SINEX file")
+        if len(self._covariance) is None:
+            raise RuntimeError('Cannot write SINEX file: no covariance matrix defined')
+        # After this point supplied data may be modified!
+        self._written=True
+        marks=[]
+        solutions=[]
+        covarprms=[-1]
+        marklist={}
+        prmid=0
+        for m in sorted(self._marks.values(),key=lambda m: (m.id,m.code,m.monument)):
+            if len(m.solutions) == 0:
+                continue
+            key=(m.id,m.code,m.monument)
+            if key in marklist:
+                raise RuntimeError('Duplicate mark ({0} {1} {2} in SINEX file'.format(*key))
+            marklist[key]=1
+            marks.append(m)
+            for s in m.solutions:
+                for i,p in enumerate(s.params):
+                    covarprms.append(p)
+                    prmid += 1
+                    s.params[i]=prmid
+                if s.vparams is not None:
+                    for i,p in enumerate(s.params):
+                        covarprms.append(p)
+                        prmid += 1
+                        s.params[i]=prmid
+
+        if prmid == 0:
+            raise RuntimeError('Cannot write SINEX file: no solution coordinates defined')
+        
+        startdate=self._startdate or datetime.now()
+        enddate=self._startdate or datetime.now()
+        varf=self._varfactor
+
+        with open(self._filename,'w') as sf:
+            sf.write("%=SNX {0:4.4s} {1:3.3s} {2} {1:3.3s} {3} {4} C {5:5d} {6} S\n"
+                     .format(self._version,self._agency,
+                             self._sinexEpoch(),
+                             self._sinexEpoch(startdate),
+                             self._sinexEpoch(enddate),
+                             prmid,
+                             self._constraint))
+
+            sf.write("+FILE/REFERENCE\n")
+            for item in ('DESCRIPTION','OUTPUT','CONTACT','SOFTWARE','HARDWARE','INPUT'):
+                sf.write(" {0:18.18s} {1:.60s}\n".format(
+                    item,
+                    self._fileRefInfo.get(item,'') or 'N/A'))
+            sf.write("-FILE/REFERENCE\n")
+
+            if len(self._comments) > 0:
+                sf.write("+FILE/COMMENT\n")
+                for c in self.comments:
+                    sf.write(" {0:.79s}\n".format(c))
+                sf.write("-FILE/COMMENT\n")
+
+            sf.write("+SITE/ID\n")
+            for m in marks:
+                xyz=m.solutions[0].xyz
+                lon,lat,hgt=GRS80.geodetic(xyz)
+                if lon < 0:
+                    lon += 360
+                sf.write(" {0:4.4s} {1:2.2s} {2:9.9s} C {3:22.22s} {4} {5} {6:7.1f}\n"
+                         .format(m.id,m.code,m.monument,m.description,
+                                 self._sinexDms(lon), self._sinexDms(lat),hgt))
+
+            sf.write("-SITE/ID\n")
+
+            # sf.write("+SITE/DATA\n")
+            # sf.write("-SITE/DATA\n")
+
+            sf.write("+SOLUTION/EPOCHS\n")
+            for m in marks:
+                for s in m.solutions:
+                    startdate=s.startdate or startdate
+                    enddate=s.enddate or enddate
+                    diff=enddate-startdate
+                    middate=startdate+timedelta(seconds=diff.total_seconds()/2)
+                    sf.write(" {0:4.4s} {1:2.2s} {2:4.4s} C {3} {4} {5}\n".format(
+                             m.id,m.code,s.solnid,
+                             self._sinexEpoch(startdate),
+                             self._sinexEpoch(enddate),
+                             self._sinexEpoch(middate),
+                            ))
+            sf.write("-SOLUTION/EPOCHS\n")
+
+            if self.stats is not None:
+                sf.write("+SOLUTION/STATISTICS\n")
+                sf.write(" {0:30.30s} {1:22.15e}\n".format(
+                    'VARIANCE FACTOR',self.stats[0]))
+                sf.write(" {0:30.30s} {1:22.15e}\n".format(
+                    'SUM OR SQUARED RESIDUALS',self.stats[1]))
+                sf.write(" {0:30.30s} {1:22d}\n".format(
+                    'NUMBER OF OBSERVATIONS',self.stats[2]))
+                sf.write(" {0:30.30s} {1:22d}\n".format(
+                    'NUMBER OF UNKNOWNS',self.stats[3]))
+                sf.write("-SOLUTION/STATISTICS\n")
+
+            sf.write("+SOLUTION/ESTIMATE\n")
+            crds=('X','Y','Z')
+            for m in marks:
+                for s in m.solutions:
+                    startdate=s.startdate or startdate
+                    enddate=s.enddate or enddate
+                    diff=enddate-startdate
+                    middate=startdate+timedelta(seconds=diff.total_seconds()/2)
+                    for crd,value,prmno in zip(crds,s.xyz,s.params):
+                        cvrprm=covarprms[prmno]
+                        stderr=math.sqrt(varf*self._covariance[cvrprm,cvrprm])
+                        sf.write(" {0:5d} STA{1:1.1s}   {2:4.4s} {3:2.2s} {4:4.4s} {5} {6:4.4s} {7:1.1s} {8:21.14e} {9:11.5e}\n"
+                                 .format(prmno,crd,m.id,m.code,s.solnid,
+                                         self._sinexEpoch(middate),'m','2',
+                                         value,stderr))
+
+            sf.write("-SOLUTION/ESTIMATE\n")
+
+            sf.write("+SOLUTION/MATRIX_ESTIMATE L COVA\n")
+            for i in range(1,prmid+1):
+                ci=covarprms[i]
+                for j in range(1,i+1):
+                    if j % 3 == 1:
+                        if j > 1:
+                            sf.write("\n")
+                        sf.write(" {0:5d} {1:5d}".format(i,j))
+                    cj=covarprms[j]
+                    sf.write(" {0:21.14e}".format(varf*self._covariance[ci,cj]))
+                sf.write("\n")
+            sf.write("-SOLUTION/MATRIX_ESTIMATE L COVA\n")
+
+            sf.write("%ENDSNX\n")
