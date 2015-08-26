@@ -1,4 +1,8 @@
 #/usr/bin/python
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
 
 import numpy as np
 import math
@@ -143,20 +147,20 @@ def main():
     output_file=args.output_file
     
     if args.xyz is not None and input_file is not None:
-        print "Cannot have xyz and input file arguments"
+        print("Cannot have xyz and input file arguments")
         sys.exit()
     if args.geodetic is not None and input_file is not None:
-        print "Cannot have geodetic and input file arguments"
+        print("Cannot have geodetic and input file arguments")
         sys.exit()
     if args.xyz is not None and args.geodetic is not None:
-        print "Cannot have xyz and geodetic arguments"
+        print("Cannot have xyz and geodetic arguments")
 
         sys.exit()
     if args.geodetic is None and args.xyz is None and not input_file:
-        print "No coordinate input specified - need xyz, geodetic, or input file"
+        print("No coordinate input specified - need xyz, geodetic, or input file")
         sys.exit()
     if input_file is not None and output_file is None:
-        print "Need the name of an output file"
+        print("Need the name of an output file")
         sys.exit()
 
     ell=GRS80
@@ -165,12 +169,12 @@ def main():
 
     if args.xyz:
         llh=ell.geodetic(args.xyz)
-        print "{0:.9f} {1:.9f} {2:.4f}".format(*llh)
+        print("{0:.9f} {1:.9f} {2:.4f}".format(*llh))
         sys.exit()
 
     if args.geodetic:
         xyz=ell.xyz(args.geodetic)
-        print "{0:.4f} {1:.4f} {2:.4f}".format(*xyz)
+        print("{0:.4f} {1:.4f} {2:.4f}".format(*xyz))
         sys.exit()
 
     tfm = ell.geodetic if args.calc_geodetic else ell.xyz
@@ -211,7 +215,7 @@ def main():
                     for c in incol:
                         c=c.upper()
                         if c not in header:
-                            print 'Column',c,'is missing from input file header'
+                            print('Column',c,'is missing from input file header')
                             sys.exit()
                         nc=header.index(c)
                         cols.append(nc)

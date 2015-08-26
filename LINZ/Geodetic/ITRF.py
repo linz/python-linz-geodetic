@@ -1,5 +1,10 @@
 #!/usr/bin/python
 
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
+
 import math
 import numpy as np
 from datetime import date, datetime
@@ -302,13 +307,13 @@ def main():
     input_file=args.input_file
     output_file=args.output_file
     if args.xyz is not None and input_file is not None:
-        print "Cannot have xyz and input file arguments"
+        print("Cannot have xyz and input file arguments")
         sys.exit()
     if not args.list and args.xyz is None and not input_file:
-        print "No coordinate input specified - need xyz or input file"
+        print("No coordinate input specified - need xyz or input file")
         sys.exit()
     if input_file is not None and output_file is None:
-        print "Need the name of an output file"
+        print("Need the name of an output file")
         sys.exit()
 
     itrfs=[x[0] for x in ITRF_params]
@@ -318,8 +323,8 @@ def main():
         if 'ITRF'+from_itrf in itrfs:
             from_itrf='ITRF'+from_itrf
         else:
-            print from_itrf,'is not a valid ITRF'
-            print 'Options are:',', '.join(itrfs)
+            print(from_itrf,'is not a valid ITRF')
+            print('Options are:',', '.join(itrfs))
             sys.exit()
 
     to_itrf=args.to_itrf.upper()
@@ -327,8 +332,8 @@ def main():
         if 'ITRF'+to_itrf in itrfs:
             to_itrf='ITRF'+to_itrf
         else:
-            print to_itrf,'is not a valid ITRF'
-            print 'Options are:',', '.join(itrfs)
+            print(to_itrf,'is not a valid ITRF')
+            print('Options are:',', '.join(itrfs))
             sys.exit()
 
     dt=datetime.now()
@@ -345,9 +350,9 @@ def main():
     tfm=Transformation(from_itrf=from_itrf,to_itrf=to_itrf).atDate(year)
 
     if args.list:
-        print tfm
+        print(tfm)
     elif args.verbose:
-        print "Transforming from {0} to {1} at {2:.2f}".format(from_itrf,to_itrf,year)
+        print("Transforming from {0} to {1} at {2:.2f}".format(from_itrf,to_itrf,year))
 
     if args.geodetic:
         transfunc=tfm.transformLonLat
@@ -359,7 +364,7 @@ def main():
     if args.xyz:
         xyzt=transfunc(args.xyz)
         xyzs=[f.format(x) for f,x in zip(crdfmt,xyzt)]
-        print "{0} {1} {2}".format(*xyzs)
+        print("{0} {1} {2}".format(*xyzs))
         sys.exit()
 
     if args.input_file:
@@ -367,7 +372,7 @@ def main():
         reqlen=3
         with sys.stdin if input_file=='-' else open(input_file,'r') as fin:
             if args.verbose:
-                print "Reading coordinates from",input_file
+                print("Reading coordinates from",input_file)
             import csv
             if args.csv:
                 freader=csv.reader(fin)
@@ -378,7 +383,7 @@ def main():
                 freader=wsreader(fin)
             with sys.stdout if output_file=='-' else open(output_file,'w') as fout:
                 if args.verbose:
-                    print "Writing coordinates to",output_file
+                    print("Writing coordinates to",output_file)
                 if args.csv:
                     writerow=csv.writer(fout).writerow
                 else:
@@ -393,7 +398,7 @@ def main():
                     for c in args.column_names:
                         c=c.upper()
                         if c not in header:
-                            print 'Column',c,'is missing from input file header'
+                            print('Column',c,'is missing from input file header')
                             sys.exit()
                         cols.append(header.index(c))
                     reqlen=max(cols)

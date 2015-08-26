@@ -1,6 +1,12 @@
 
 # Module for reading SINEX files.
 
+# Improts to support python 3 compatibility
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
+
 import sys
 from collections import namedtuple
 from datetime import datetime, timedelta
@@ -76,7 +82,7 @@ class Reader( object ):
         self._solutions=solutions
         self._monuments=monuments
 
-    def get( self, ptid=None, ptcode=None, solnid=None, monument=None, exceptionIfNone=False, allSolutions=False ):
+    def get( self, ptid=None, ptcode=None, solnid=None, monument=None, exceptionIfNone=False, allSolutions=False, date=None ):
         '''
         Get a specific solution.  Can either specify a ptid or a monument.  If this is ambiguous then
         a ptcode and solnid may also be supplied).
@@ -98,6 +104,16 @@ class Reader( object ):
                 solutions.append(solution)
         else:
             raise RuntimeError('Sinex.Reader.get requires monument or ptid parameter')
+
+        if date:
+            selected=[]
+            for s in solutions:
+                ptid,ptcode,solnid=s
+                epoch=self._epochs.get((ptid,ptcode,solnid))
+                if epoch is not None:
+                    if epoch.start <= date and epoch.end >= date:
+                        selected.append(s)
+            solutions=selected
 
         if len(solutions) == 0:
             if exceptionIfNone:
@@ -245,7 +261,6 @@ class Reader( object ):
             if cmdchar == ' ':
                 continue
             if cmdchar != '+':
-                print line
                 self._readError('Unexpected character '+cmdchar+' looking for section')
             section=line[1:]
             break
