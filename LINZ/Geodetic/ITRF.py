@@ -255,7 +255,7 @@ class BursaWolf14Transformation( object ):
 
         Uses numpy for efficient processing of arrays of coordinates
         '''
-        from Ellipsoid import GRS80
+        from .Ellipsoid import GRS80
         xyz=GRS80.xyz(lon,lat,hgt)
         xyz=self.transform(xyz,date=date)
         return GRS80.geodetic(xyz)

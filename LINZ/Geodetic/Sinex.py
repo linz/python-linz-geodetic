@@ -14,7 +14,7 @@ import gzip
 import math
 import re
 import numpy as np
-from LINZ.Geodetic.Ellipsoid import GRS80
+from .Ellipsoid import GRS80
 
 class Reader( object ):
 
