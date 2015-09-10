@@ -356,7 +356,7 @@ def main():
 
     if args.geodetic:
         transfunc=tfm.transformLonLat
-        crdfmt=["{0:.8f}","{0:.8f}","{0:.4f}"]
+        crdfmt=["{0:.9f}","{0:.9f}","{0:.4f}"]
     else:
         transfunc=tfm.transform
         crdfmt=["{0:.4f}"]*3
