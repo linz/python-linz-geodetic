@@ -1,3 +1,10 @@
+python-linz-geodetic (1.5.1-2) trusty; urgency=medium
+
+  * Fixing precision of ITRF lat/lon coordinates
+  * Changing to use pybuild
+
+ -- Chris Crook <ccrook@linz.govt.nz>  Fri, 18 Sep 2015 07:34:19 +1200
+
 python-linz-geodetic (1.5.1-1) trusty; urgency=medium
 
   * Making python3 ready
