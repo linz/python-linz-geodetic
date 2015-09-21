@@ -40,12 +40,30 @@ class Ellipsoid( object ):
         '''
         Initiallize an ellipsoid based on semi major axis and inverse flattening
         '''
-        self.a=float(a)
-        self.rf=float(rf)
-        self.b=a-a/rf if rf else a
-        self.a2=a*a
-        self.b2=self.b*self.b
-        self.a2b2=self.a2-self.b2
+        self._setParams(a,rf)
+
+    @property
+    def a( self ): return self._a
+
+    @a.setter
+    def a( self, a ): self._setParams( a, self._rf )
+
+    @property
+    def rf( self ): return self._rf
+
+    @rf.setter
+    def rf( self, rf ): self._setParams( self._a, rf )
+
+    @property
+    def b( self ): return self._b
+
+    def _setParams(self,a,rf):
+        self._a=float(a)
+        self._rf=float(rf)
+        self._b=a-a/rf if rf else a
+        self._a2=a*a
+        self._b2=self._b*self._b
+        self._a2b2=self._a2-self._b2
 
     def xyz( self, lon, lat=None, hgt=None ):
         '''
@@ -72,10 +90,10 @@ class Ellipsoid( object ):
 
         cln,sln = Ellipsoid._cossin(lon)
         clt,slt = Ellipsoid._cossin(lat)
-        bsac=np.hypot(self.b*slt,self.a*clt)
-        p = self.a2*clt/bsac + hgt*clt
+        bsac=np.hypot(self._b*slt,self._a*clt)
+        p = self._a2*clt/bsac + hgt*clt
         
-        xyz=[p*cln,p*sln,self.b2*slt/bsac+hgt*slt]
+        xyz=[p*cln,p*sln,self._b2*slt/bsac+hgt*slt]
         xyz=np.vstack(xyz).transpose()
         if single:
             xyz=xyz[0]
@@ -88,10 +106,10 @@ class Ellipsoid( object ):
         '''
         cln,sln = Ellipsoid._cossin(lon)
         clt,slt = Ellipsoid._cossin(lat)
-        bsac=np.hypot(self.b*slt,self.a*clt)
-        p = self.a2*clt/bsac + hgt*clt
+        bsac=np.hypot(self._b*slt,self._a*clt)
+        p = self._a2*clt/bsac + hgt*clt
         dedln=np.radians(p)
-        dndlt=np.radians((self.a2*self.b2)/(bsac*bsac*bsac)+hgt)
+        dndlt=np.radians((self._a2*self._b2)/(bsac*bsac*bsac)+hgt)
         return dedln,dndlt
 
     def geodetic( self, xyz ):
@@ -111,13 +129,13 @@ class Ellipsoid( object ):
         x,y,z = xyz[:,0],xyz[:,1],xyz[:,2]
         ln=np.arctan2(y,x)
         p=np.hypot(x,y)
-        lt=np.arctan2(self.a2*z,self.b2*p)
+        lt=np.arctan2(self._a2*z,self._b2*p)
         for i in range(10):
             lt0=lt
             slt=np.sin(lt)
             clt=np.cos(lt)
-            bsac=np.hypot(self.b*slt,self.a*clt)
-            lt=np.arctan2(z+slt*self.a2b2/bsac,p)
+            bsac=np.hypot(self._b*slt,self._a*clt)
+            lt=np.arctan2(z+slt*self._a2b2/bsac,p)
             if np.all(abs(lt-lt0) < self.convergence):
                 break
         h=p*clt+z*slt-bsac
