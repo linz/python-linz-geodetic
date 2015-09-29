@@ -1,3 +1,9 @@
+python-linz-geodetic (1.6.0-1) trusty; urgency=medium
+
+  * Adding properties, adding unit tests
+
+ -- Chris Crook <ccrook@linz.govt.nz>  Tue, 29 Sep 2015 18:48:52 +1300
+
 python-linz-geodetic (1.5.1-2) trusty; urgency=medium
 
   * Fixing precision of ITRF lat/lon coordinates
