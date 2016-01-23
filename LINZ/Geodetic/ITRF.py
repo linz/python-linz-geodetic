@@ -76,8 +76,29 @@ from datetime import date, datetime
 # Combined to generate following parameters relative to ITRF96 at epoch 2000.0
 #
 # Note: IGS parameters use opposite sign convention for rotations to IERS
+#
+# ITRF2014 parameters from http://itrf.ensg.ign.fr/ITRF_solutions/2014/tp_14-08.php 
+#
+# Transformation Parameters from ITRF2014 to ITRF2008 
+# 
+# 14 transformation parameters from ITRF2014 to ITRF2008 have been estimated using 127 stations listed in Table 2 and located at 125 sites shown on Figure 2.
+# 
+# 
+#  	T1	T2	T3	D	R1	R2	R3
+#  	mm	mm	mm	10-9	mas	mas	mas
+#  	1.6	1.9	2.4	-0.02	0.000	0.000	0.000
+# +/-	0.2	0.1	0.1	0.02	0.006	0.006	0.006
+#  
+# Rates	0.0	0.0	-0.1	0.03	0.000	0.000	0.000
+# +/-	0.2	0.1	0.1	0.02	0.006	0.006	0.006
+# 
+# Table 1: Transformation parameters at epoch 2010.0 and their rates from ITRF2014 to ITRF2008 (ITRF2008 minus ITRF2014
+# 
+# (After conversion to epoch 2000)
 
 ITRF_params= (
+('ITRF2014', ( -3.2,  -0.19,  21.07, -1.72901, 0.16508, -0.26897, -0.11984),
+             ( -0.79,  0.6,    1.24,  0.13201, 0.01347, -0.01514, -0.01973)),
 ('ITRF2008', ( -4.8,  -2.09,  17.67, -1.40901, 0.16508, -0.26897, -0.11984),
              ( -0.79,  0.6,    1.34,  0.10201, 0.01347, -0.01514, -0.01973)),
 ('ITRF2005', ( -6.8,  -2.99,  12.97, -0.46901, 0.16508, -0.26897, -0.11984),

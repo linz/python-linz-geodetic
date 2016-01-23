@@ -20,6 +20,7 @@ class EllipsoidTestCase( fileunittest.TestCase ):
         Test handling of ellipsoid parameters
         '''
         ell=Ellipsoid.Ellipsoid(6378101,297.23)
+        self.assertEqual(ell.a,6378105.0,'Radius is wrong')
         self.check('Semi major axis',ell.a)
         self.check('Semi minor axis',ell.b)
         self.check('Flattening',ell.rf)
