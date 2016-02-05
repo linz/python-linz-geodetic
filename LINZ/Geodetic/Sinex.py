@@ -1,7 +1,7 @@
 
 # Module for reading SINEX files.
 
-# Improts to support python 3 compatibility
+# Imports to support python 3 compatibility
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -16,6 +16,28 @@ import re
 import numpy as np
 from .Ellipsoid import GRS80
 
+COVAR_FULL=2
+COVAR_STATION=1
+COVAR_NONE=0
+
+EXTRAPOLATE_NONE=0
+EXTRAPOLATE_FIRST=1
+EXTRAPOLATE_LAST=2
+EXTRAPOLATE_AFTER=4
+EXTRAPOLATE_ALL=7
+
+_years={}
+
+def _decimalYear( date ):
+    global _years
+    year=date.year
+    if year not in _years:
+        y0=datetime(year,1,1)
+        y1=datetime(year+1,1,1)
+        factor=1.0/(y1-y0).total_seconds()
+        _years[year]=(y0,factor)
+    return year+(date-_years[year][0]).total_seconds()*_years[year][1]
+
 class Reader( object ):
 
     _scanners={}
@@ -24,19 +46,16 @@ class Reader( object ):
     Site=namedtuple('Site','id code monument description llh')
     Epoch=namedtuple('Epoch','id code soln start end mean')
     Coordinate=namedtuple('Coordinate','id code soln crddate xyz vxyz prmids')
-    Solution=namedtuple('Solution','id code soln monument description llh startdate enddate crddate xyz vxyz prmids covariance')
-
-    COVAR_FULL=2
-    COVAR_STATION=1
-    COVAR_NONE=0
+    Solution=namedtuple('Solution','id code soln monument description llh startdate enddate crddate crddate_year xyz vxyz prmids covariance')
 
     def __init__( self, filename, **options ):
         '''
         Load a SINEX file. Options are:
 
             selectCodes     a list of codes to load (default is all) 
-            velocities      read velocities as well as xyz
-            covariance      covariance option, one of COVAR_FULL, COVAR_STATION, COVAR_NONE
+            velocities      read velocities as well as xyz (boolean, default is True)
+            covariance      covariance option, one of COVAR_FULL, COVAR_STATION, COVAR_NONE,
+                                default is COVAR_NONE
 
         '''
         self._filename=filename
@@ -45,9 +64,9 @@ class Reader( object ):
         self._version=None
         self._options=options
         self._selectCodes=options.get('selectCodes')
-        covarOption=options.get('covariance') or Reader.COVAR_NONE
-        if covarOption and covarOption != Reader.COVAR_STATION:
-            covarOption=Reader.COVAR_FULL
+        covarOption=options.get('covariance') or COVAR_NONE
+        if covarOption and covarOption != COVAR_STATION:
+            covarOption=COVAR_FULL
         self._covarianceOption=covarOption
         self._sites={}
         self._stats={}
@@ -82,46 +101,87 @@ class Reader( object ):
         self._solutions=solutions
         self._monuments=monuments
 
-    def get( self, ptid=None, ptcode=None, solnid=None, monument=None, exceptionIfNone=False, allSolutions=False, date=None ):
+    def get( self, ptid=None, ptcode=None, solnid=None, monument=None, exceptionIfNone=False, allSolutions=False, 
+            date=None, extrapolate=EXTRAPOLATE_NONE ):
         '''
         Get a specific solution.  Can either specify a ptid or a monument.  If this is ambiguous then
         a ptcode and solnid may also be supplied).
+
+        If allSolutions is true then a list of matching solutions will be returned
+
+        If a date is specified then the solution applicable at that date is returned 
+
+        The extrapolate option affects extrapolation beyond the solution dates.  Options are:
+            EXTRAPOLATE_NONE    only return solutions matching the date
+            EXTRAPOLATE_FIRST   use the first solution for dates before it
+            EXTRAPOLATE_LAST    use the last solution for dates after it
+            EXTRAPOLATE_AFTER   allow extrapolation each solution forwards till the next 
+                                (implies EXTRAPOLATE_LAST)
+            EXTRAPOLATE_ALL     use all these options
         '''
-        solutions=[]
+
+        extrapolateFirst = extrapolate & EXTRAPOLATE_FIRST
+        extrapolateAfter = extrapolate & EXTRAPOLATE_AFTER
+        extrapolateLast = (extrapolate & EXTRAPOLATE_LAST) or extrapolateAfter
+
+        solutions={}
         if monument is not None:
             if ptid is not None or ptcode is not None:
                 raise RuntimeError('Sinex.Reader.get cannot have monument parameter with ptid or ptcode')
             for solution in self._monuments.get(monument,[]):
                 if solnid is not None and solution[2] != solnid:
                     continue
-                solutions.append(solution)
+                key=(solution[0],solution[1])
+                if key not in solutions:
+                    solutions[key]=[]
+                solutions[key].append(solution)
         elif ptid is not None:
             for solution in self._solutions.get(ptid,[]):
                 if ptcode is not None and solution[1] != ptcode:
                     continue
                 if solnid is not None and solution[2] != solnid:
                     continue
-                solutions.append(solution)
+                key=(ptid,solution[1])
+                if key not in solutions:
+                    solutions[key]=[]
+                solutions[key].append(solution)
         else:
             raise RuntimeError('Sinex.Reader.get requires monument or ptid parameter')
 
-        if date:
-            selected=[]
-            for s in solutions:
-                ptid,ptcode,solnid=s
-                epoch=self._epochs.get((ptid,ptcode,solnid))
-                if epoch is not None:
-                    if epoch.start <= date and epoch.end >= date:
-                        selected.append(s)
-            solutions=selected
+        epochs=self._epochs
+        for s in solutions:
+            solutions[s].sort(key=lambda soln: epochs[soln].start if soln in epochs else datetime.min)
 
+        selected=[]
+        for solnset in solutions.values():
+            if not date:
+                selected.extend(solnset)
+                continue
+            # If a date is defined then only return one solution for each point
+            chosen=solnset[0] if extrapolateFirst else None
+            for s in solnset:
+                epoch=self._epochs.get(s)
+                if epoch is not None:
+                    if not extrapolateAfter:
+                        chosen=None
+                    if epoch.start > date:
+                        break
+                    if epoch.start <= date:
+                        if epoch.end >= date:
+                            chosen=s
+                            break
+                    if extrapolateLast: # implies extrapolateAfter
+                        chosen=s
+            if chosen:
+                selected.append(chosen)
+
+        solutions=selected
         if len(solutions) == 0:
             if exceptionIfNone:
                 raise RuntimeError('No Sinex solution found matching request')
             return None
         if len(solutions) > 1 and not allSolutions:
             raise RuntimeError('Ambiguous Sinex solution requested')
-
 
         results=[]
         for ptid,ptcode,solnid in solutions:
@@ -143,14 +203,33 @@ class Reader( object ):
                 epoch.start if epoch is not None else None,
                 epoch.end if epoch is not None else None,
                 coord.crddate,
+                _decimalYear(coord.crddate),
                 coord.xyz,
                 coord.vxyz,
                 prmids,
                 covar))
 
-        results.sort(key=lambda x: (x.id,x.code,x.soln))
-
         return results if allSolutions else results[0]
+
+    def xyz( self, date, ptid=None, ptcode=None, solnid=None, monument=None, exceptionIfFail=False, 
+            extrapolate=EXTRAPOLATE_NONE ):
+        '''
+        Return the xyz coordinate at an epoch based on the point id and date.  Parameters are as for 
+        get() except that date is required as the first parameter.
+        '''
+        solutions=self.get( ptid=ptid, ptcode=ptcode, solnid=solnid, monument=monument, 
+                           exceptionIfNone=exceptionIfFail, allSolutions=True, date=date, extrapolate=extrapolate )
+
+        if not solutions:
+            return
+        if len(solutions) > 1:
+            if exceptionOnFail:
+                raise RuntimeError('Ambiguous solution in SINEX file')
+            return
+        solution=solutions[0]
+        ydiff=_decimalYear(date)-solution.crddate_year
+        return np.array(solution.xyz)+ydiff*np.array(solution.vxyz)
+
 
     def _open( self ):
         if self._fh:
@@ -181,7 +260,7 @@ class Reader( object ):
                 sections.append(section)
                 if section in Reader._scanners:
                     Reader._scanners[section](self)
-                    if section=='SOLUTION/ESTIMATE' and self._covarianceOption==Reader.COVAR_NONE:
+                    if section=='SOLUTION/ESTIMATE' and self._covarianceOption==COVAR_NONE:
                         break
                 else:
                     self._skipSection(section)
@@ -351,7 +430,7 @@ class Reader( object ):
         coords={}
         prmlookup={}
 
-        usevel=self._options.get('velocities')
+        usevel=self._options.get('velocities',True)
         useprms=('STAX','STAY','STAZ','VELX','VELY','VELZ') if usevel else ('STAX','STAY','STAZ')
         nprm=6 if usevel else 3
         covarOption=self._covarianceOption
@@ -370,9 +449,9 @@ class Reader( object ):
             prmid=int(prmid)
             if (ptid,ptcode,solnid) not in coords:
                 prmids=(nextcvr,list(range(nextprm,nextprm+nprm)))
-                if covarOption == Reader.COVAR_FULL:
+                if covarOption == COVAR_FULL:
                     nextprm += nprm
-                elif covarOption == Reader.COVAR_STATION:
+                elif covarOption == COVAR_STATION:
                     nextcvr += 1
                 vxyz=np.zeros((3,)) if usevel else None
                 coords[ptid,ptcode,solnid]=Reader.Coordinate(ptid,ptcode,solnid,prmtime,
@@ -399,7 +478,7 @@ class Reader( object ):
              (?:\s([\s\dE\+\-\.]{21}))?
              \s*$''', re.IGNORECASE | re.VERBOSE )
 
-        if self._covarianceOption == Reader.COVAR_NONE:
+        if self._covarianceOption == COVAR_NONE:
             self._skipSection( section )
             return
 
@@ -471,10 +550,13 @@ class Writer( object ):
 
     Alternatively can be used as an ordinary object, in which case a final call
     to snx.write() is required to create the file.
+
     '''
+    # For the future - make consistent with Reader, make a Sinex object that can be 
+    # processed after reading or constructing...
 
     Mark=namedtuple('Mark','mark id code monument description solutions')
-    Solution=namedtuple('Solution','solnid xyz params vxyz vparams startdate enddate')
+    Solution=namedtuple('Solution','solnid xyz params vxyz vparams startdate enddate crddate')
 
     def __init__( self, filename, **info ):
         self._filename=filename
@@ -555,7 +637,7 @@ class Writer( object ):
         description=description or ''
         self._marks[mark]=Writer.Mark(mark,id,code,monument,description,[])
 
-    def addSolution( self, mark, xyz, params, vxyz=None, vparams=None, startdate=None, enddate=None):
+    def addSolution( self, mark, xyz, params, vxyz=None, vparams=None, startdate=None, enddate=None, crddate=None):
         '''
         Add a coordinate solution to the sinex file.  Specifies:
             mark (which must have been added with addMark), 
@@ -580,7 +662,7 @@ class Writer( object ):
         
         solnid="{0:04d}".format(len(self._marks[mark].solutions)+1)
         self._marks[mark].solutions.append(
-            Writer.Solution(solnid,xyz,params,vxyz,vparams,startdate,enddate))
+            Writer.Solution(solnid,xyz,params,vxyz,vparams,startdate,enddate,crddate))
 
     def setCovariance( self, covariance, varianceFactor=1.0 ):
         '''
@@ -731,13 +813,13 @@ class Writer( object ):
                     startdate=s.startdate or startdate
                     enddate=s.enddate or enddate
                     diff=enddate-startdate
-                    middate=startdate+timedelta(seconds=diff.total_seconds()/2)
+                    crddate=s.crddate or startdate+timedelta(seconds=diff.total_seconds()/2)
                     for crd,value,prmno in zip(crds,s.xyz,s.params):
                         cvrprm=covarprms[prmno]
                         stderr=math.sqrt(varf*self._covariance[cvrprm,cvrprm])
                         sf.write(" {0:5d} STA{1:1.1s}   {2:4.4s} {3:2.2s} {4:4.4s} {5} {6:4.4s} {7:1.1s} {8:21.14e} {9:11.5e}\n"
                                  .format(prmno,crd,m.id,m.code,s.solnid,
-                                         self._sinexEpoch(middate),'m','2',
+                                         self._sinexEpoch(crddate),'m','2',
                                          value,stderr))
 
             sf.write("-SOLUTION/ESTIMATE\n")
