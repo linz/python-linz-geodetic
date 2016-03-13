@@ -38,6 +38,12 @@ def _decimalYear( date ):
         _years[year]=(y0,factor)
     return year+(date-_years[year][0]).total_seconds()*_years[year][1]
 
+class NoSolution( RuntimeError ): pass
+class AmbiguousSolution( RuntimeError ): pass
+class InvalidParameters( RuntimeError ): pass
+class CovarianceMissing( RuntimeError ): pass
+class SinexFileError( RuntimeError ): pass
+
 class Reader( object ):
 
     _scanners={}
@@ -46,6 +52,7 @@ class Reader( object ):
     Site=namedtuple('Site','id code monument description llh')
     Epoch=namedtuple('Epoch','id code soln start end mean')
     Coordinate=namedtuple('Coordinate','id code soln crddate xyz vxyz prmids')
+    SolutionId=namedtuple('SolutionId','id code soln')
     Solution=namedtuple('Solution','id code soln monument description llh startdate enddate crddate crddate_year xyz vxyz prmids covariance')
 
     def __init__( self, filename, **options ):
@@ -97,37 +104,41 @@ class Reader( object ):
                 monument=site.monument
                 if monument not in monuments:
                     monuments[monument]=[]
-                monuments[monument].append((ptid,ptcode,solnid))
+                monuments[monument].append(Reader.SolutionId(ptid,ptcode,solnid))
         self._solutions=solutions
         self._monuments=monuments
 
-    def get( self, ptid=None, ptcode=None, solnid=None, monument=None, exceptionIfNone=False, allSolutions=False, 
-            date=None, extrapolate=EXTRAPOLATE_NONE ):
+    def getSolutionIds( self, ptid=None, ptcode=None, solnid=None, monument=None, solution=None ):
         '''
-        Get a specific solution.  Can either specify a ptid or a monument.  If this is ambiguous then
-        a ptcode and solnid may also be supplied).
+        Get a list of solution ids matching the point id, point code, and solution id,
+        or monument
+        or solution tuple
 
-        If allSolutions is true then a list of matching solutions will be returned
-
-        If a date is specified then the solution applicable at that date is returned 
-
-        The extrapolate option affects extrapolation beyond the solution dates.  Options are:
-            EXTRAPOLATE_NONE    only return solutions matching the date
-            EXTRAPOLATE_FIRST   use the first solution for dates before it
-            EXTRAPOLATE_LAST    use the last solution for dates after it
-            EXTRAPOLATE_AFTER   allow extrapolation each solution forwards till the next 
-                                (implies EXTRAPOLATE_LAST)
-            EXTRAPOLATE_ALL     use all these options
+        First parameter may be interpreted as a ptid (basestring), or ':' separated
+        point id, point code, solution id, or solution id tuple (if a tuple), 
         '''
 
-        extrapolateFirst = extrapolate & EXTRAPOLATE_FIRST
-        extrapolateAfter = extrapolate & EXTRAPOLATE_AFTER
-        extrapolateLast = (extrapolate & EXTRAPOLATE_LAST) or extrapolateAfter
+        if isinstance(ptid,tuple):
+            solution=ptid
+            ptid=None
+
+        if isinstance(solution,basestring):
+            ptid=solution
+            solution=None
+
+        if ptid is not None and ':' in ptid:
+            solution=((ptid+'::').split(':'))[:3]
+            ptid=solution[0]
+
+        if solution is not None:
+            ptid=ptid or solution[0]
+            ptcode=ptcode or solution[1]
+            solnid=solnid or solution[2]
 
         solutions={}
         if monument is not None:
             if ptid is not None or ptcode is not None:
-                raise RuntimeError('Sinex.Reader.get cannot have monument parameter with ptid or ptcode')
+                raise InvalidParameters('Sinex.Reader cannot specify monument as well as ptid or ptcode')
             for solution in self._monuments.get(monument,[]):
                 if solnid is not None and solution[2] != solnid:
                     continue
@@ -146,7 +157,37 @@ class Reader( object ):
                     solutions[key]=[]
                 solutions[key].append(solution)
         else:
-            raise RuntimeError('Sinex.Reader.get requires monument or ptid parameter')
+            raise InvalidParameters('Sinex.Reader requires a solution, monument, ptid parameter')
+        return solutions
+
+
+    def get( self, ptid=None, ptcode=None, solnid=None, monument=None, solution=None, date=None, 
+            allSolutions=False, extrapolate=EXTRAPOLATE_NONE ):
+        '''
+        Get a specific solution.  Can either specify a ptid or a monument.
+        If this is ambiguous then a ptcode and solnid may also be supplied). 
+        Alternatively can specify a solution such as returned by solutions().
+
+        If allSolutions is true then a list of matching solutions will be returned
+
+        If a date is specified then the solution applicable at that date is returned 
+
+        The extrapolate option affects extrapolation beyond the solution dates.  Options are:
+            EXTRAPOLATE_NONE    only return solutions matching the date
+            EXTRAPOLATE_FIRST   use the first solution for dates before it
+            EXTRAPOLATE_LAST    use the last solution for dates after it
+            EXTRAPOLATE_AFTER   allow extrapolation each solution forwards till the next 
+                                (implies EXTRAPOLATE_LAST)
+            EXTRAPOLATE_ALL     use all these options
+        Note that extrapolation here refers to the selection of solutions, not the 
+        coordinates calculated from them.  Use .xyz to calculate/extrapolate coordinates.
+        '''
+
+        extrapolateFirst = extrapolate & EXTRAPOLATE_FIRST
+        extrapolateAfter = extrapolate & EXTRAPOLATE_AFTER
+        extrapolateLast = (extrapolate & EXTRAPOLATE_LAST) or extrapolateAfter
+
+        solutions=self.getSolutionIds(ptid=ptid,ptcode=ptcode,solnid=solnid,monument=monument,solution=solution)
 
         epochs=self._epochs
         for s in solutions:
@@ -177,14 +218,29 @@ class Reader( object ):
 
         solutions=selected
         if len(solutions) == 0:
-            if exceptionIfNone:
-                raise RuntimeError('No Sinex solution found matching request')
+            raise NoSolution('No Sinex solution found matching request')
             return None
         if len(solutions) > 1 and not allSolutions:
-            raise RuntimeError('Ambiguous Sinex solution requested')
+            raise AmbiguousSolution('Ambiguous Sinex solution requested')
 
+        results=self.getSolutions(solutions)
+        return results if allSolutions else results[0]
+
+    def getSolutions( self, solutions ):
+        '''
+        Returns the full solution data for a list of solutions, each supplied
+        as a tuple of point id, point code, and solution id (eg as returned by
+        solutions, or get).
+
+        If the covariance was loaded (see covariance option of __init__) then
+        the solutions will include a covariance matrix.  If the full covariance 
+        was loaded each solution will contain the same full covariance matrix.
+        Each solution contains prmids array mapping x,y,z and vx, vy, vz into 
+        the corresponding elements of the array
+        '''
         results=[]
-        for ptid,ptcode,solnid in solutions:
+        for solution in solutions:
+            ptid,ptcode,solnid=solution[:3]
             site=self._sites.get((ptid,ptcode))
             epoch=self._epochs.get((ptid,ptcode,solnid))
             coord=self._coords[ptid,ptcode,solnid]
@@ -208,39 +264,99 @@ class Reader( object ):
                 coord.vxyz,
                 prmids,
                 covar))
+        return results
 
-        return results if allSolutions else results[0]
-
-    def xyz( self, date, ptid=None, ptcode=None, solnid=None, monument=None, exceptionIfFail=False, 
+    def xyz( self, solution=None, date=None, covariance=False, _covarInfo=False,
             extrapolate=EXTRAPOLATE_NONE ):
         '''
-        Return the xyz coordinate at an epoch based on the point id and date.  Parameters are as for 
-        get() except that date is required as the first parameter.
+        Return the xyz coordinate at an epoch based on the point id and date.  
+        Solution can be (ptid,ptcode,solnid) tuple, or "ptid:ptcode:solnid string".
+        ptcode can be omitted if ptid is not ambiguous.  solnid can be omitted - 
+        will be defined by date.
         '''
-        solutions=self.get( ptid=ptid, ptcode=ptcode, solnid=solnid, monument=monument, 
-                           exceptionIfNone=exceptionIfFail, allSolutions=True, date=date, extrapolate=extrapolate )
+        solutions=self.get( solution=solution, date=date, 
+                           extrapolate=extrapolate, allSolutions=True )
 
         if not solutions:
             return
         if len(solutions) > 1:
-            if exceptionOnFail:
-                raise RuntimeError('Ambiguous solution in SINEX file')
-            return
+            raise AmbiguousSolution('Ambiguous solution in SINEX file')
         solution=solutions[0]
-        ydiff=_decimalYear(date)-solution.crddate_year
-        return np.array(solution.xyz)+ydiff*np.array(solution.vxyz)
+        if (covariance or _covarInfo) and solution.covariance is None:
+            raise CovarianceMissing('Sinex covariances not read')
 
+        if solution.vxyz is not None and data is not None:
+            ydiff=_decimalYear(date)-solution.crddate_year
+            xyz=np.array(solution.xyz)+ydiff*np.array(solution.vxyz)
+            nprm=6
+        else:
+            ydiff=0.0
+            xyz=solution.xyz.copy()
+            nprm=3
+
+        if _covarInfo:
+            return xyz,ydiff,solution.prmids,nprm,solution.covariance
+
+        if not covariance:
+            return xyz
+
+        prmids=solution.prmids
+        ptcovar=solution.covariance[np.ix_(prmids,prmids)]
+        mult=np.zeros((3,nprm))
+        mult[:,0:3]=np.identity(3)
+        if nprm > 3:
+            mult[:,3:]=np.identity(3)*ydiff
+        xyzcovar=mult.dot(ptcovar.dot(mult.T))
+        return xyz,xyzcovar
+
+    def dxyz( self, solutionFrom, solutionTo, date=None, enu=False,
+             extrapolate=EXTRAPOLATE_NONE, covariance=False):
+        '''
+        Return the difference in xyz coordinates at an epoch based on the point id and date.  
+        Solutions can be supplied as solution tuples or ':' delimited strings of ptid, ptcode, solnid.
+        '''
+
+        xyz1=self.xyz(solutionFrom,date,extrapolate=extrapolate,_covarInfo=covariance)
+        xyz2=self.xyz(solutionTo,date,extrapolate=extrapolate,_covarInfo=covariance)
+        if covariance:
+            xyz1,ydiff1,prmids1,nprm1,covar1=xyz1
+            xyz2,ydiff2,prmids2,nprm2,covar2=xyz2
+            if covar1 is not covar2 or nprm1 != nprm2:
+                raise CovarianceMissing('Need full Sinex covariance to calculate vector difference covariance')
+            obseq=np.zeros((3,covar1.shape[0]))
+            rows=[0,1,2,0,2,1][:nprm1]
+            mult=np.ones((nprm1,))
+            if nprm1 > 3:
+                mult[3:]=ydiff2
+            obseq[rows,prmids2[:nprm1]]=mult
+            if nprm1 > 3:
+                mult[3:]=ydiff1
+            obseq[rows,prmids1[:nprm1]] -= mult
+            covar=obseq.dot(covar1.dot(obseq.T))
+
+        dxyz=xyz2-xyz1
+        if enu:
+            xyz=(xyz1+xyz2)/2.0
+            llh=GRS80.geodetic(xyz)
+            enu_axes=GRS80.enu_axes(llh[0],llh[1])
+
+            dxyz=enu_axes.dot(dxyz)
+            if covariance:
+                covar=enu_axes.dot(covar.dot(enu_axes.T))
+        if covariance:
+            return dxyz,covar
+        return dxyz
 
     def _open( self ):
         if self._fh:
-            raise RuntimeError('Reopening already open SINEX file handle')
+            raise SinexFileError('Reopening already open SINEX file handle')
         try:
             if self._filename.endswith('.gz'):
                 self._fh=gzip.GzipFile(self._filename)
             else:
                 self._fh=open(self._filename)
         except:
-            raise RuntimeError('Cannot open SINEX file '+self._filename)
+            raise SinexFileError('Cannot open SINEX file '+self._filename)
         self._lineno=0
         self._scanHeader()
 
@@ -269,7 +385,7 @@ class Reader( object ):
 
     def _readline( self ):
         if self._fh is None:
-            raise RuntimeError('Cannot read from unopened SINEX file '+self._filename)
+            raise SinexFileError('Cannot read from unopened SINEX file '+self._filename)
         line=self._fh.readline()
         if line == '': return None
         self._lineno += 1
@@ -277,13 +393,13 @@ class Reader( object ):
 
     def _readError( self, message ):
         message=message+' at line '+str(self._lineno)+' of SINEX file '+self._filename
-        raise RuntimeError(message)
+        raise SinexFileError(message)
 
     def _scanHeader( self ):
         header=self._readline()
         match=re.match(r'^\%\=SNX\s(\d\.\d\d)',header)
         if match is None:
-            raise RuntimeError('Invalid SINEX file '+self._filename+' - missing %=SNX in header')
+            raise SinexFileError('Invalid SINEX file '+self._filename+' - missing %=SNX in header')
 
     def _sinexEpoch( self, epochstr ):
         match=self._epochre.match( epochstr )
@@ -454,8 +570,8 @@ class Reader( object ):
                 elif covarOption == COVAR_STATION:
                     nextcvr += 1
                 vxyz=np.zeros((3,)) if usevel else None
-                coords[ptid,ptcode,solnid]=Reader.Coordinate(ptid,ptcode,solnid,prmtime,
-                                                             np.zeros((3,)),vxyz,prmids)
+                coord=Reader.Coordinate(ptid,ptcode,solnid,prmtime,np.zeros((3,)),vxyz,prmids)
+                coords[Reader.SolutionId(ptid,ptcode,solnid)]=coord
             coord=coords[ptid,ptcode,solnid]
             if prmtime != coord.crddate:
                 self._readError('Inconsistent parameter epoch')
@@ -606,7 +722,7 @@ class Writer( object ):
                 self._agency=value.upper()[:3]
             elif item == 'CONSTRAINT':
                 if value not in ('0','1','2'):
-                    raise RuntimeError('Invalid SINEX constraint code '+value+' specified')
+                    raise SinexFileError('Invalid SINEX constraint code '+value+' specified')
                 self._constraint=value
 
     def setSolutionStatistics( self, varianceFactor, sumSquaredResiduals, nObs, nUnknowns ):
@@ -649,13 +765,13 @@ class Writer( object ):
             enddate (optional) end date of applicability of the solution
         '''
         if mark not in self._marks:
-            raise RuntimeError("Cannot add solution for "+mark+" to SINEX file: mark not defined")
+            raise SinexFileError("Cannot add solution for "+mark+" to SINEX file: mark not defined")
         if len(xyz) != 3 or len(params) != 3:
-            raise RuntimeError("Invalid coordinate xyz or params specified for mark "+mark)
+            raise SinexFileError("Invalid coordinate xyz or params specified for mark "+mark)
         params=list(params)
         if vxyz is not None:
             if len(vxyz) != 3 or len(vparams) != 3:
-                raise RuntimeError("Invalid coordinate xyz or params specified for mark "+mark)
+                raise SinexFileError("Invalid coordinate xyz or params specified for mark "+mark)
             vparams=list(vparams)
         else:
             vparams=None
@@ -706,9 +822,9 @@ class Writer( object ):
         this is called when the context closes.
         '''
         if self._written:
-            raise RuntimeError("Cannot write already written SINEX file")
+            raise SinexFileError("Cannot write already written SINEX file")
         if len(self._covariance) is None:
-            raise RuntimeError('Cannot write SINEX file: no covariance matrix defined')
+            raise SinexFileError('Cannot write SINEX file: no covariance matrix defined')
         # After this point supplied data may be modified!
         self._written=True
         marks=[]
@@ -721,7 +837,7 @@ class Writer( object ):
                 continue
             key=(m.id,m.code,m.monument)
             if key in marklist:
-                raise RuntimeError('Duplicate mark ({0} {1} {2} in SINEX file'.format(*key))
+                raise SinexFileError('Duplicate mark ({0} {1} {2} in SINEX file'.format(*key))
             marklist[key]=1
             marks.append(m)
             for s in m.solutions:
@@ -736,7 +852,7 @@ class Writer( object ):
                         s.params[i]=prmid
 
         if prmid == 0:
-            raise RuntimeError('Cannot write SINEX file: no solution coordinates defined')
+            raise SinexFileError('Cannot write SINEX file: no solution coordinates defined')
         
         startdate=self._startdate or datetime.now()
         enddate=self._startdate or datetime.now()
