@@ -375,7 +375,7 @@ class Reader( object ):
                     break
                 sections.append(section)
                 if section in Reader._scanners:
-                    Reader._scanners[section](self)
+                    Reader._scanners[section](self,section)
                     if section=='SOLUTION/ESTIMATE' and self._covarianceOption==COVAR_NONE:
                         break
                 else:
@@ -473,8 +473,7 @@ class Reader( object ):
             angle=-angle
         return angle
 
-    def _scanSiteId( self ):
-        section='SITE/ID'
+    def _scanSiteId( self, section ):
         recordre=re.compile(r'''^
              \s([\s\w]{4})  # point id
              \s([\s\w]{2})  # point code
@@ -495,8 +494,7 @@ class Reader( object ):
         self._sites=sites
 
 
-    def _scanSolutionStatistics( self ):
-        section='SOLUTION/STATISTICS'
+    def _scanSolutionStatistics( self, section ):
         recordre=re.compile(r'''^
              \s(.{0,30})     # Statisics item
              \s(.{0,22})     # Statisics value
@@ -507,8 +505,7 @@ class Reader( object ):
             stats[match.group(1).strip()]=match.group(2).strip()
         self._stats=stats
 
-    def _scanSolutionEpoch( self ):
-        section='SOLUTION/EPOCHS'
+    def _scanSolutionEpoch( self, section ):
         recordre=re.compile(r'''^
              \s([\s\w]{4})  # point id
              \s([\s\w]{2})  # point code
@@ -528,8 +525,7 @@ class Reader( object ):
             epochs[ptid,ptcode,solnid]=Reader.Epoch(ptid,ptcode,solnid,starttime,endtime,meantime)
         self._epochs=epochs
 
-    def _scanSolutionEstimate( self ):
-        section='SOLUTION/ESTIMATE'
+    def _scanSolutionEstimate( self, section ):
         recordre=re.compile(r'''^
              \s([\s\d]{5})  # param id
              \s([\s\w]{6})  # param type
@@ -584,8 +580,7 @@ class Reader( object ):
         self._coords=coords
         self._prmlookup=prmlookup
 
-    def _scanSolutionMatrixEstimate( self ):
-        section='SOLUTION/MATRIX_ESTIMATE L COVA'
+    def _scanSolutionMatrixEstimate( self, section ):
         recordre=re.compile(r'''^
              \s([\s\d]{5})
              \s([\s\d]{5})
@@ -648,6 +643,7 @@ Reader._scanners={
         'SOLUTION/EPOCHS': Reader._scanSolutionEpoch,
         'SOLUTION/ESTIMATE': Reader._scanSolutionEstimate,
         'SOLUTION/MATRIX_ESTIMATE L COVA': Reader._scanSolutionMatrixEstimate,
+        'SOLUTION/MATRIX_ESTIMATE U COVA': Reader._scanSolutionMatrixEstimate,
         }
 
 
