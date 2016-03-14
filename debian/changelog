@@ -1,3 +1,13 @@
+python-linz-geodetic (1.7.0-1) trusty; urgency=medium
+
+  * Adding ITRF2014
+  * Adding function for calculating coordinates at epoch
+  * Adding dxyz function and tidying up solutions
+  * Adding support for upper triangular covariance
+  * Fixing up errors from refactoring
+
+ -- Chris Crook <ccrook@linz.govt.nz>  Tue, 15 Mar 2016 11:33:07 +1300
+
 python-linz-geodetic (1.6.0-1) trusty; urgency=medium
 
   * Adding properties, adding unit tests
