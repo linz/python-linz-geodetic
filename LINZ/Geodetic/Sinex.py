@@ -135,7 +135,7 @@ class Reader( object ):
             ptcode=ptcode or solution[1]
             solnid=solnid or solution[2]
 
-        solutions={}
+        solutions=[]
         if monument is not None:
             if ptid is not None or ptcode is not None:
                 raise InvalidParameters('Sinex.Reader cannot specify monument as well as ptid or ptcode')
@@ -143,19 +143,14 @@ class Reader( object ):
                 if solnid is not None and solution[2] != solnid:
                     continue
                 key=(solution[0],solution[1])
-                if key not in solutions:
-                    solutions[key]=[]
-                solutions[key].append(solution)
+                solutions.append(solution)
         elif ptid is not None:
             for solution in self._solutions.get(ptid,[]):
                 if ptcode is not None and solution[1] != ptcode:
                     continue
                 if solnid is not None and solution[2] != solnid:
                     continue
-                key=(ptid,solution[1])
-                if key not in solutions:
-                    solutions[key]=[]
-                solutions[key].append(solution)
+                solutions.append(solution)
         else:
             raise InvalidParameters('Sinex.Reader requires a solution, monument, ptid parameter')
         return solutions
@@ -183,40 +178,47 @@ class Reader( object ):
         coordinates calculated from them.  Use .xyz to calculate/extrapolate coordinates.
         '''
 
-        extrapolateFirst = extrapolate & EXTRAPOLATE_FIRST
-        extrapolateAfter = extrapolate & EXTRAPOLATE_AFTER
-        extrapolateLast = (extrapolate & EXTRAPOLATE_LAST) or extrapolateAfter
-
         solutions=self.getSolutionIds(ptid=ptid,ptcode=ptcode,solnid=solnid,monument=monument,solution=solution)
+        if date is not None:
 
-        epochs=self._epochs
-        for s in solutions:
-            solutions[s].sort(key=lambda soln: epochs[soln].start if soln in epochs else datetime.min)
+            extrapolateFirst = extrapolate & EXTRAPOLATE_FIRST
+            extrapolateAfter = extrapolate & EXTRAPOLATE_AFTER
+            extrapolateLast = (extrapolate & EXTRAPOLATE_LAST) or extrapolateAfter
 
-        selected=[]
-        for solnset in solutions.values():
-            if not date:
-                selected.extend(solnset)
-                continue
-            # If a date is defined then only return one solution for each point
-            chosen=solnset[0] if extrapolateFirst else None
-            for s in solnset:
-                epoch=self._epochs.get(s)
-                if epoch is not None:
-                    if not extrapolateAfter:
-                        chosen=None
-                    if epoch.start > date:
-                        break
-                    if epoch.start <= date:
-                        if epoch.end >= date:
-                            chosen=s
+            # Group solution by monument
+            msolutions={}
+            for s in solutions:
+                key=s[:2]
+                if key not in msolutions:
+                    msolutions[key]=[]
+                msolutions[key].append(s)
+
+            # Order by epoch for each monument
+            epochs=self._epochs
+            for s in msolutions:
+                msolutions[s].sort(key=lambda soln: epochs[soln].start if soln in epochs else datetime.min)
+
+            # Select by date
+            solutions=[]
+            for solnset in msolutions.values():
+                # If a date is defined then only return one solution for each monument
+                chosen=solnset[0] if extrapolateFirst else None
+                for s in solnset:
+                    epoch=self._epochs.get(s)
+                    if epoch is not None:
+                        if not extrapolateAfter:
+                            chosen=None
+                        if epoch.start > date:
                             break
-                    if extrapolateLast: # implies extrapolateAfter
-                        chosen=s
-            if chosen:
-                selected.append(chosen)
+                        if epoch.start <= date:
+                            if epoch.end >= date:
+                                chosen=s
+                                break
+                        if extrapolateLast: # implies extrapolateAfter
+                            chosen=s
+                if chosen:
+                    solutions.append(chosen)
 
-        solutions=selected
         if len(solutions) == 0:
             raise NoSolution('No Sinex solution found matching request')
             return None
@@ -285,7 +287,7 @@ class Reader( object ):
         if (covariance or _covarInfo) and solution.covariance is None:
             raise CovarianceMissing('Sinex covariances not read')
 
-        if solution.vxyz is not None and data is not None:
+        if solution.vxyz is not None and date is not None:
             ydiff=_decimalYear(date)-solution.crddate_year
             xyz=np.array(solution.xyz)+ydiff*np.array(solution.vxyz)
             nprm=6
