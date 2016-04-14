@@ -8,8 +8,8 @@ import sys
 import os.path
 sys.path.insert(0,os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),'LINZ','Geodetic'))
 
-print(sys.path[0])
-from LINZ import fileunittest
+#print(sys.path[0])
+import fileunittest
 import Ellipsoid
 
 
@@ -20,7 +20,6 @@ class EllipsoidTestCase( fileunittest.TestCase ):
         Test handling of ellipsoid parameters
         '''
         ell=Ellipsoid.Ellipsoid(6378101,297.23)
-        self.assertEqual(ell.a,6378105.0,'Radius is wrong')
         self.check('Semi major axis',ell.a)
         self.check('Semi minor axis',ell.b)
         self.check('Flattening',ell.rf)
