@@ -1,3 +1,9 @@
+python-linz-geodetic (1.7.1-3linz~trusty1) trusty; urgency=medium
+
+  * Fixing rules to remove experimental python3 build
+
+ -- Chris Crook <ccrook@linz.govt.nz> Fri, 15 Apr 2016 09:56:00 +1200
+
 python-linz-geodetic (1.7.1-2linz~trusty1) trusty; urgency=medium
 
   * Rebuild request due invalid source package upload
