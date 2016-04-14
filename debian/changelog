@@ -1,3 +1,9 @@
+python-linz-geodetic (1.7.1-2linz~trusty1) trusty; urgency=medium
+
+  * Rebuild request due invalid source package upload
+
+ -- Ivan Mincik <imincik@linz.govt.nz>  Fri, 15 Apr 2016 08:01:49 +1200
+
 python-linz-geodetic (1.7.1-1linz~trusty1) trusty; urgency=medium
 
   * Updating to Debian 3.0 packaging format
