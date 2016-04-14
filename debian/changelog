@@ -1,4 +1,4 @@
-python-linz-geodetic (1.7.1-1linz~trusty1) UNRELEASED; urgency=medium
+python-linz-geodetic (1.7.1-1linz~trusty1) trusty; urgency=medium
 
   * Updating to Debian 3.0 packaging format
 
