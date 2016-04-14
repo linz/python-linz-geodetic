@@ -1,0 +1,77 @@
+1.7.0-1 (15 Mar 2016)
+---------------------
+  * Adding ITRF2014
+  * Adding function for calculating coordinates at epoch
+  * Adding dxyz function and tidying up solutions
+  * Adding support for upper triangular covariance
+  * Fixing up errors from refactoring
+
+
+1.6.0-1 (29 Sep 2015)
+---------------------
+  * Adding properties, adding unit tests
+
+
+1.5.1-2 (18 Sep 2015)
+---------------------
+  * Fixing precision of ITRF lat/lon coordinates
+  * Changing to use pybuild
+
+
+1.5.1-1 (27 Aug 2015)
+---------------------
+  * Making python3 ready
+
+
+1.5.0-1 (27 Aug 2015)
+---------------------
+  * Moving out GDB to seperate module, making python3 compatible
+
+
+1.4.0-1 (25 Aug 2015)
+---------------------
+  * Adding Sinex.Writer
+
+
+1.3.3-1 (19 Aug 2015)
+---------------------
+  * Adding Sinex.py
+  * Improving docs
+  * Adding option for returning multiple solutions
+  * More Sinex.py updates!
+  * Fixing bug in ITRF transformation calculation
+
+
+1.3.2-1 (03 Jul 2015)
+---------------------
+  * Fixing name of ellipsoid entry point
+
+
+1.3.1-1 (02 Jul 2015)
+---------------------
+  * Fixing capitalisation in setup file
+
+
+1.3.0-1 (02 Jul 2015)
+---------------------
+  * Tidying up ITRF module
+
+
+1.2.0-1 (02 Jul 2015)
+---------------------
+  * More fixes of class case to be a bit more consistent
+
+
+1.1.1-1 (02 Jul 2015)
+---------------------
+  * Renaming LINZ.geodetic to LINZ.Geodetic
+
+
+1.1.0-1 (01 Jul 2015)
+---------------------
+  * Adding gdb module for rretrieving station information from the geodetic database
+
+
+1.0.0-1 (27 Jun 2015)
+---------------------
+  * source package automatically created by stdeb 0.6.0+git
