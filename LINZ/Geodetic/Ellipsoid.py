@@ -143,6 +143,18 @@ class Ellipsoid( object ):
         result=np.vstack(result).transpose()
         return result[0] if single else result
 
+    def radii_of_curvature( self, latitude ):
+        '''
+        Returns the radii of curvature along the meridional and prime
+        vertical normal sections.
+        '''
+        clt,slt = Ellipsoid._cossin(latitude)
+        den=math.sqrt(self._a2*clt*clt+self._b2*slt*slt)
+        rm=self._a2*self._b2/(den*den*den)
+        rn=self._a2/den
+        return rm, rn
+
+
 GRS80 = Ellipsoid(6378137.0,298.257222101)
 
 def main():
