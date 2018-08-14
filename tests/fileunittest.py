@@ -21,6 +21,10 @@ defaultDelta=1.0e-8
 # Set True to write the results from all tests to stdout
 dumpResults=False
 dumpFileReset=False
+try:
+    stringtype = basestring
+except NameError:
+    stringtype = str
 
 class TestCase( unittest.TestCase ):
     '''
@@ -97,12 +101,12 @@ class TestCase( unittest.TestCase ):
         testcode=re.sub(r'\W','_',testcode)
         if dumpResults:
             self.dumpfh.write(">>>> "+testcode+" ")
-            self.dumpfh.write(output if isinstance(output,basestring) else repr(output))
+            self.dumpfh.write(output if isinstance(output,stringtype) else repr(output))
             self.dumpfh.write("\n")
         else:
             message=message or testname+' incorrect'
             expected=self.testResults.get(testcode)
-            if not isinstance(output,basestring):
+            if not isinstance(output,str):
                 try:
                     expected=eval(expected)
                 except:
@@ -121,7 +125,7 @@ class TestCase( unittest.TestCase ):
         elif isinstance(output,float):
             message=message+" ({0} != {1})".format(output,expected)
             self.assertAlmostEqual(output,expected,msg=message,delta=delta)
-        elif isinstance(output,basestring):
+        elif isinstance(output,str):
             output=output.strip()
             expected=expected.strip()
             if output != expected:

@@ -16,6 +16,11 @@ import re
 import numpy as np
 from .Ellipsoid import GRS80
 
+try:
+    stringtype = basestring   # for Python2
+except NameError:
+    stringtype = str          # for Python3
+
 COVAR_FULL=2
 COVAR_STATION=1
 COVAR_NONE=0
@@ -165,7 +170,7 @@ class Reader( object ):
 
         If allSolutions is true then a list of matching solutions will be returned
 
-        If a date is specified then the solution applicable at that date is returned 
+        If a date is specified then the solution applicable at that date is returned
 
         The extrapolate option affects extrapolation beyond the solution dates.  Options are:
             EXTRAPOLATE_NONE    only return solutions matching the date
@@ -276,7 +281,7 @@ class Reader( object ):
         ptcode can be omitted if ptid is not ambiguous.  solnid can be omitted - 
         will be defined by date.
         '''
-        solutions=self.get( solution=solution, date=date, 
+        solutions=self.get( solution=solution, date=date,
                            extrapolate=extrapolate, allSolutions=True )
 
         if not solutions:
@@ -512,7 +517,7 @@ class Reader( object ):
              \s([\s\w]{4})  # point id
              \s([\s\w]{2})  # point code
              \s([\s\w\-]{4})  # solution id
-             \s(\w)           # to be determined!
+             \s([\w|\s])           # could be blank
              \s(\d\d\:\d\d\d\:\d\d\d\d\d) # start epoch
              \s(\d\d\:\d\d\d\:\d\d\d\d\d) # end epoch
              \s(\d\d\:\d\d\d\:\d\d\d\d\d) # mean epoch
@@ -652,7 +657,6 @@ Reader._scanners={
 class Writer( object ):
     '''
     The Sinex.Writer class is most simply used as a context manager.  The usage is
-
     with Sinex.Writer(filename) as snx:
         snx.addFileInfo(...)
         snx.setObsDateRange(startdate,enddate)
@@ -661,10 +665,8 @@ class Writer( object ):
             snx.addMark(m.code, ... )
             snx.addSolution(m,xyz,xyzprms)
         snx.setCovariance(covar)
-
     Alternatively can be used as an ordinary object, in which case a final call
     to snx.write() is required to create the file.
-
     '''
     # For the future - make consistent with Reader, make a Sinex object that can be 
     # processed after reading or constructing...
@@ -699,7 +701,6 @@ class Writer( object ):
     def addFileInfo( self, **info ):
         '''
         Add file header information, any of:
-
             description
             output
             contact
