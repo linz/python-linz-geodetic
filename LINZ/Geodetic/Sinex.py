@@ -119,7 +119,7 @@ class Reader( object ):
         or monument
         or solution tuple
 
-        First parameter may be interpreted as a ptid (basestring), or ':' separated
+        First parameter may be interpreted as a ptid (stringtype), or ':' separated
         point id, point code, solution id, or solution id tuple (if a tuple), 
         '''
 
@@ -127,7 +127,7 @@ class Reader( object ):
             solution=ptid
             ptid=None
 
-        if isinstance(solution,basestring):
+        if isinstance(solution, stringtype):
             ptid=solution
             solution=None
 
