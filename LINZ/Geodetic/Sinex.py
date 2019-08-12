@@ -484,7 +484,7 @@ class Reader( object ):
         recordre=re.compile(r'''^
              \s([\s\w]{4})  # point id
              \s([\s\w]{2})  # point code
-             \s([\s\w]{9})  # monument id
+             \s(.{9})  # monument id
              \s[\w\s]       # Observation techniquesl
              \s(.{22})      # description
              \s([\s\-\d]{3}[\-\s\d]{3}[\-\s\d\.]{5}) # longitude DMS
