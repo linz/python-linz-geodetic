@@ -566,16 +566,17 @@ class Reader( object ):
             prmno=useprms.index(prmtype)
             prmtime=self._sinexEpoch(epoch)
             prmid=int(prmid)
-            if (ptid,ptcode,solnid) not in coords:
-                prmids=(nextcvr,list(range(nextprm,nextprm+nprm)))
+            solnid=Reader.SolutionId(ptid,ptcode,solnid)
+            if solnid not in coords:
+                prmids=(nextcvr,(range(nextprm,nextprm+nprm)))
                 if covarOption == COVAR_FULL:
                     nextprm += nprm
                 elif covarOption == COVAR_STATION:
                     nextcvr += 1
                 vxyz=np.zeros((3,)) if usevel else None
                 coord=Reader.Coordinate(ptid,ptcode,solnid,prmtime,np.zeros((3,)),vxyz,prmids)
-                coords[Reader.SolutionId(ptid,ptcode,solnid)]=coord
-            coord=coords[ptid,ptcode,solnid]
+                coords[solnid]=coord
+            coord=coords[solnid]
             if prmtime != coord.crddate:
                 self._readError('Inconsistent parameter epoch')
             prmlookup[prmid]=(coord.prmids[0],coord.prmids[1][prmno])
