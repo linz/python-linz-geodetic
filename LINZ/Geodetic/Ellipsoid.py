@@ -1,8 +1,4 @@
-#/usr/bin/python
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
+#/usr/bin/python3
 
 import numpy as np
 import math
@@ -104,7 +100,6 @@ class Ellipsoid( object ):
         Calculate the number of metres per degree east and
         north
         '''
-        cln,sln = Ellipsoid._cossin(lon)
         clt,slt = Ellipsoid._cossin(lat)
         bsac=np.hypot(self._b*slt,self._a*clt)
         p = self._a2*clt/bsac + hgt*clt
@@ -239,7 +234,7 @@ def main():
                         fout.write('\t'.join(row))
                         fout.write('\n')
                 if incol:
-                    header=freader.next()
+                    header=next(freader)
                     header=[x.upper() for x in header]
                     cols=[]
                     for c in incol:

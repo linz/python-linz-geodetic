@@ -1,9 +1,3 @@
-# Imports to support python 3 compatibility
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 import sys
 import os
 import os.path
@@ -22,7 +16,7 @@ defaultDelta=1.0e-8
 dumpResults=False
 dumpFileReset=False
 try:
-    stringtype = basestring
+    stringtype = str
 except NameError:
     stringtype = str
 
@@ -113,6 +107,14 @@ class TestCase( unittest.TestCase ):
                     output=repr(output)
             self.checkEqual(output,expected,message,delta)
 
+    def checkRun( self, testname, function, message=None, delta=None ):
+        # Run a function with no parameters and either check the output
+        # or check the error generated.
+        try:
+            self.check(testname,function(),message,delta)
+        except Exception as ex:
+            self.check(testname,ex,message,delta)
+
     def checkEqual( self, output, expected, message, delta ):
         # Equality check with tolerance on floating point numbers and handling
         # of numpy arrays
@@ -127,13 +129,14 @@ class TestCase( unittest.TestCase ):
             self.assertAlmostEqual(output,expected,msg=message,delta=delta)
         elif isinstance(output,str):
             output=output.strip()
-            expected=expected.strip()
+            if isinstance(expected,str):
+                expected=expected.strip()
             if output != expected:
-                self.fail(message+"  ("+output+" != "+expected+")")
+                self.fail(message+"  ({0} != {1})".format(output,expected))
         elif isinstance(output,dict):
             if not message.endswith(']'):
                 message=message+' '
-            for k in expected.keys():
+            for k in list(expected.keys()):
                 self.checkEqual(output[k],expected[k],message+'[{0}]'.format(k),delta)
         elif hasattr(output,'__getitem__'):
             if not message.endswith(']'):
