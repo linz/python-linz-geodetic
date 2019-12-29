@@ -1,3 +1,9 @@
+python-linz-geodetic (1.7.2-1linz~trusty1) trusty; urgency=medium
+
+  * Removing ellipsoid program that conflicts with python3 package
+
+ -- Chris Crook <ccrook@linz.govt.nz> Mon, 30 Dec 2019 09:00:00 +1200
+
 python-linz-geodetic (1.7.1-1linz~trusty1) trusty; urgency=medium
 
   * Updating to Debian 3.0 packaging format
