@@ -11,7 +11,7 @@ Standards-Version: 3.9.1
 
 Package: python3-linz-geodetic
 Architecture: all
-Depends: ${misc:Depends}, ${python:Depends}
+Depends: ${misc:Depends}, ${python3:Depends}
 Description: Python LINZ geodetic
  Provides some base geodetic functions.
  .
