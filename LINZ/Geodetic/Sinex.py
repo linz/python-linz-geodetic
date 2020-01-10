@@ -468,11 +468,14 @@ class Reader( object ):
 
     def _latlon( self, llstring ):
         negative='-' in llstring
-        llstring.replace('-',' ')
+        llstring = llstring.replace('-',' ')
         d,m,s=(float(x) for x in llstring.split())
         angle=d+m/60.0+s/3600.0
         if negative:
             angle=-angle
+            
+        if angle > 180.0:
+            angle = angle - 360.0
         return angle
 
     def _scanSiteId( self, section ):
