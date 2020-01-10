@@ -6,3 +6,4 @@ debian/python-linz*
 debian/debhelper.log
 debian/substvars
 debian/files
+tests/testSinex.results.new

@@ -1,11 +1,4 @@
-
 # Module for reading SINEX files.
-
-# Imports to support python 3 compatibility
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
 
 import sys
 from collections import namedtuple
@@ -17,7 +10,7 @@ import numpy as np
 from .Ellipsoid import GRS80
 
 try:
-    stringtype = basestring   # for Python2
+    stringtype = str   # for Python2
 except NameError:
     stringtype = str          # for Python3
 
@@ -205,7 +198,7 @@ class Reader( object ):
 
             # Select by date
             solutions=[]
-            for solnset in msolutions.values():
+            for solnset in list(msolutions.values()):
                 # If a date is defined then only return one solution for each monument
                 chosen=solnset[0] if extrapolateFirst else None
                 for s in solnset:
@@ -280,6 +273,8 @@ class Reader( object ):
         Solution can be (ptid,ptcode,solnid) tuple, or "ptid:ptcode:solnid string".
         ptcode can be omitted if ptid is not ambiguous.  solnid can be omitted - 
         will be defined by date.
+
+        If covariance is True returns a tuple of xyz, vxyz
         '''
         solutions=self.get( solution=solution, date=date,
                            extrapolate=extrapolate, allSolutions=True )
@@ -571,7 +566,7 @@ class Reader( object ):
             prmid=int(prmid)
             solnid=Reader.SolutionId(ptid,ptcode,solnid)
             if solnid not in coords:
-                prmids=(nextcvr,(range(nextprm,nextprm+nprm)))
+                prmids=(nextcvr,(list(range(nextprm,nextprm+nprm))))
                 if covarOption == COVAR_FULL:
                     nextprm += nprm
                 elif covarOption == COVAR_STATION:
@@ -606,7 +601,7 @@ class Reader( object ):
 
         ncvr=0
         nprm=0
-        for cvr,prm in self._prmlookup.values():
+        for cvr,prm in list(self._prmlookup.values()):
             if cvr > ncvr:
                 ncvr=cvr
             if prm > nprm:
@@ -715,7 +710,7 @@ class Writer( object ):
             comment
             constraint
         '''
-        for item, value in info.iteritems():
+        for item, value in info.items():
             item=item.upper()
             if item in ('DESCRIPTION','OUTPUT','CONTACT','SOFTWARE','HARDWARE','INPUT'):
                 self._fileRefInfo[item]=value
@@ -787,7 +782,7 @@ class Writer( object ):
         '''
         Define the covariance matrix for the ordinates. (numpy nxn array)
         '''
-        self._covariance=covariance
+        self._covariance=np.array(covariance)
         self._varfactor=varianceFactor
 
     def _sinexEpoch( self, date=None  ):
@@ -835,7 +830,7 @@ class Writer( object ):
         covarprms=[-1]
         marklist={}
         prmid=0
-        for m in sorted(self._marks.values(),key=lambda m: (m.id,m.code,m.monument)):
+        for m in sorted(list(self._marks.values()),key=lambda m: (m.id,m.code,m.monument)):
             if len(m.solutions) == 0:
                 continue
             key=(m.id,m.code,m.monument)
