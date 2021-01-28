@@ -850,7 +850,7 @@ class Writer( object ):
             raise SinexFileError('Cannot write SINEX file: no solution coordinates defined')
         
         startdate=self._startdate or datetime.now()
-        enddate=self._startdate or datetime.now()
+        enddate=self._enddate or datetime.now()
         varf=self._varfactor
 
         with open(self._filename,'w') as sf:
