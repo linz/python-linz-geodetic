@@ -1,0 +1,56 @@
+[tool.poetry]
+name = "linz-geodetic"
+version = "1.0.0"
+description = "LINZ.geodetic module - miscellanous geodetic functions"
+authors = ["Chris Crook <ccrook@linz.govt.nz>"]
+license = "MIT"
+readme = "README.md"
+packages = [{include = "LINZ"}]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+numpy = "^1.21"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+line-length = 127
+
+# [tool.coverage.report]
+# exclude_lines = [
+#     'if __name__ == "__main__":',
+# ]
+# fail_under = 100
+# 
+# [tool.coverage.run]
+# branch = true
+# omit = [
+#     ".venv/*",
+# ]
+
+[tool.isort]
+line_length = 127
+case_sensitive = true
+profile = "black"
+
+[tool.mypy]
+show_error_codes = true
+strict = true
+
+
+[tool.poetry.dev-dependencies]
+black = "^22.6"
+# coverage = "*"
+# gitlint = "*"
+isort = "^5.6"
+# language-formatters-pre-commit-hooks = "*"
+# mutmut = "*"
+mypy = "*"
+# pre-commit = "*"
+pylint = "^2.12"
+pytest = "^6.2"
+# pytest-randomly = "*"
+# typed-ast = "*"

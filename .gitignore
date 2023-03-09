@@ -1,9 +1,15 @@
+.cache
+.pybuild
+.vscode
 *.pyc
+*.results.new
+.build
 build
 dist
 linz_geodetic.egg-info
 debian/python-linz*
+debian/python3-linz*
 debian/debhelper.log
 debian/substvars
 debian/files
-tests/testSinex.results.new
+debian/.debhelper
