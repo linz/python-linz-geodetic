@@ -1,12 +1,14 @@
 # Module for reading SINEX files.
 
-import sys
-from collections import namedtuple
-from datetime import datetime, timedelta
 import gzip
 import math
 import re
+import sys
+from collections import namedtuple
+from datetime import datetime, timedelta
+
 import numpy as np
+
 from .Ellipsoid import GRS80
 
 try:
@@ -125,9 +127,7 @@ class Reader(object):
         self._solutions = solutions
         self._monuments = monuments
 
-    def getSolutionIds(
-        self, ptid=None, ptcode=None, solnid=None, monument=None, solution=None
-    ):
+    def getSolutionIds(self, ptid=None, ptcode=None, solnid=None, monument=None, solution=None):
         """
         Get a list of solution ids matching the point id, point code, and solution id,
         or monument
@@ -157,9 +157,7 @@ class Reader(object):
         solutions = []
         if monument is not None:
             if ptid is not None or ptcode is not None:
-                raise InvalidParameters(
-                    "Sinex.Reader cannot specify monument as well as ptid or ptcode"
-                )
+                raise InvalidParameters("Sinex.Reader cannot specify monument as well as ptid or ptcode")
             for solution in self._monuments.get(monument, []):
                 if solnid is not None and solution[2] != solnid:
                     continue
@@ -173,9 +171,7 @@ class Reader(object):
                     continue
                 solutions.append(solution)
         else:
-            raise InvalidParameters(
-                "Sinex.Reader requires a solution, monument, ptid parameter"
-            )
+            raise InvalidParameters("Sinex.Reader requires a solution, monument, ptid parameter")
         return solutions
 
     def get(
@@ -233,11 +229,7 @@ class Reader(object):
             # Order by epoch for each monument
             epochs = self._epochs
             for s in msolutions:
-                msolutions[s].sort(
-                    key=lambda soln: epochs[soln].start
-                    if soln in epochs
-                    else datetime.min
-                )
+                msolutions[s].sort(key=lambda soln: epochs[soln].start if soln in epochs else datetime.min)
 
             # Select by date
             solutions = []
@@ -330,9 +322,7 @@ class Reader(object):
 
         If covariance is True returns a tuple of xyz, vxyz
         """
-        solutions = self.get(
-            solution=solution, date=date, extrapolate=extrapolate, allSolutions=True
-        )
+        solutions = self.get(solution=solution, date=date, extrapolate=extrapolate, allSolutions=True)
 
         if not solutions:
             return
@@ -380,19 +370,13 @@ class Reader(object):
         Solutions can be supplied as solution tuples or ':' delimited strings of ptid, ptcode, solnid.
         """
 
-        xyz1 = self.xyz(
-            solutionFrom, date, extrapolate=extrapolate, _covarInfo=covariance
-        )
-        xyz2 = self.xyz(
-            solutionTo, date, extrapolate=extrapolate, _covarInfo=covariance
-        )
+        xyz1 = self.xyz(solutionFrom, date, extrapolate=extrapolate, _covarInfo=covariance)
+        xyz2 = self.xyz(solutionTo, date, extrapolate=extrapolate, _covarInfo=covariance)
         if covariance:
             xyz1, ydiff1, prmids1, nprm1, covar1 = xyz1
             xyz2, ydiff2, prmids2, nprm2, covar2 = xyz2
             if covar1 is not covar2 or nprm1 != nprm2:
-                raise CovarianceMissing(
-                    "Need full Sinex covariance to calculate vector difference covariance"
-                )
+                raise CovarianceMissing("Need full Sinex covariance to calculate vector difference covariance")
             obseq = np.zeros((3, covar1.shape[0]))
             rows = [0, 1, 2, 0, 2, 1][:nprm1]
             mult = np.ones((nprm1,))
@@ -446,10 +430,7 @@ class Reader(object):
                 sections.append(section)
                 if section in Reader._scanners:
                     Reader._scanners[section](self, section)
-                    if (
-                        section == "SOLUTION/ESTIMATE"
-                        and self._covarianceOption == COVAR_NONE
-                    ):
+                    if section == "SOLUTION/ESTIMATE" and self._covarianceOption == COVAR_NONE:
                         break
                 else:
                     self._skipSection(section)
@@ -458,9 +439,7 @@ class Reader(object):
 
     def _readline(self):
         if self._fh is None:
-            raise SinexFileError(
-                "Cannot read from unopened SINEX file " + self._filename
-            )
+            raise SinexFileError("Cannot read from unopened SINEX file " + self._filename)
         line = self._fh.readline()
         if line == "":
             return None
@@ -468,22 +447,14 @@ class Reader(object):
         return line.rstrip()
 
     def _readError(self, message):
-        message = (
-            message
-            + " at line "
-            + str(self._lineno)
-            + " of SINEX file "
-            + self._filename
-        )
+        message = message + " at line " + str(self._lineno) + " of SINEX file " + self._filename
         raise SinexFileError(message)
 
     def _scanHeader(self):
         header = self._readline()
         match = re.match(r"^\%\=SNX\s(\d\.\d\d)", header)
         if match is None:
-            raise SinexFileError(
-                "Invalid SINEX file " + self._filename + " - missing %=SNX in header"
-            )
+            raise SinexFileError("Invalid SINEX file " + self._filename + " - missing %=SNX in header")
 
     def _sinexEpoch(self, epochstr):
         match = self._epochre.match(epochstr)
@@ -540,9 +511,7 @@ class Reader(object):
             if cmdchar == " ":
                 continue
             if cmdchar != "+":
-                self._readError(
-                    "Unexpected character " + cmdchar + " looking for section"
-                )
+                self._readError("Unexpected character " + cmdchar + " looking for section")
             section = line[1:]
             break
         return section
@@ -576,14 +545,10 @@ class Reader(object):
 
         sites = {}
         for match in self._scanSection(section, recordre):
-            ptid, ptcode, ptname, description, lon, lat, hgt = (
-                x.strip() for x in match.groups()
-            )
+            ptid, ptcode, ptname, description, lon, lat, hgt = (x.strip() for x in match.groups())
             if self._wantId(ptid):
                 llh = (self._latlon(lon), self._latlon(lat), float(hgt))
-                sites[ptid, ptcode] = Reader.Site(
-                    ptid, ptcode, ptname, description, llh
-                )
+                sites[ptid, ptcode] = Reader.Site(ptid, ptcode, ptname, description, llh)
         self._sites = sites
 
     def _scanSolutionStatistics(self, section):
@@ -616,15 +581,11 @@ class Reader(object):
 
         epochs = {}
         for match in self._scanSection(section, recordre):
-            ptid, ptcode, solnid, skip, start, end, mean = (
-                x.strip() for x in match.groups()
-            )
+            ptid, ptcode, solnid, skip, start, end, mean = (x.strip() for x in match.groups())
             starttime = self._sinexEpoch(start)
             endtime = self._sinexEpoch(end)
             meantime = self._sinexEpoch(mean)
-            epochs[ptid, ptcode, solnid] = Reader.Epoch(
-                ptid, ptcode, solnid, starttime, endtime, meantime
-            )
+            epochs[ptid, ptcode, solnid] = Reader.Epoch(ptid, ptcode, solnid, starttime, endtime, meantime)
         self._epochs = epochs
 
     def _scanSolutionEstimate(self, section):
@@ -648,11 +609,7 @@ class Reader(object):
         prmlookup = {}
 
         usevel = self._options.get("velocities", True)
-        useprms = (
-            ("STAX", "STAY", "STAZ", "VELX", "VELY", "VELZ")
-            if usevel
-            else ("STAX", "STAY", "STAZ")
-        )
+        useprms = ("STAX", "STAY", "STAZ", "VELX", "VELY", "VELZ") if usevel else ("STAX", "STAY", "STAZ")
         nprm = 6 if usevel else 3
         covarOption = self._covarianceOption
         nextprm = 0
@@ -686,9 +643,7 @@ class Reader(object):
                 elif covarOption == COVAR_STATION:
                     nextcvr += 1
                 vxyz = np.zeros((3,)) if usevel else None
-                coord = Reader.Coordinate(
-                    ptid, ptcode, solnid, prmtime, np.zeros((3,)), vxyz, prmids
-                )
+                coord = Reader.Coordinate(ptid, ptcode, solnid, prmtime, np.zeros((3,)), vxyz, prmids)
                 coords[solnid] = coord
             coord = coords[solnid]
             if prmtime != coord.crddate:
@@ -790,9 +745,7 @@ class Writer(object):
     # processed after reading or constructing...
 
     Mark = namedtuple("Mark", "mark id code monument description solutions")
-    Solution = namedtuple(
-        "Solution", "solnid xyz params vxyz vparams startdate enddate crddate"
-    )
+    Solution = namedtuple("Solution", "solnid xyz params vxyz vparams startdate enddate crddate")
 
     def __init__(self, filename, **info):
         self._filename = filename
@@ -848,14 +801,10 @@ class Writer(object):
                 self._agency = value.upper()[:3]
             elif item == "CONSTRAINT":
                 if value not in ("0", "1", "2"):
-                    raise SinexFileError(
-                        "Invalid SINEX constraint code " + value + " specified"
-                    )
+                    raise SinexFileError("Invalid SINEX constraint code " + value + " specified")
                 self._constraint = value
 
-    def setSolutionStatistics(
-        self, varianceFactor, sumSquaredResiduals, nObs, nUnknowns
-    ):
+    def setSolutionStatistics(self, varianceFactor, sumSquaredResiduals, nObs, nUnknowns):
         """
         Set the solution statistics values
            variance factor
@@ -905,29 +854,19 @@ class Writer(object):
             enddate (optional) end date of applicability of the solution
         """
         if mark not in self._marks:
-            raise SinexFileError(
-                "Cannot add solution for " + mark + " to SINEX file: mark not defined"
-            )
+            raise SinexFileError("Cannot add solution for " + mark + " to SINEX file: mark not defined")
         if len(xyz) != 3 or len(params) != 3:
-            raise SinexFileError(
-                "Invalid coordinate xyz or params specified for mark " + mark
-            )
+            raise SinexFileError("Invalid coordinate xyz or params specified for mark " + mark)
         params = list(params)
         if vxyz is not None:
             if len(vxyz) != 3 or len(vparams) != 3:
-                raise SinexFileError(
-                    "Invalid coordinate xyz or params specified for mark " + mark
-                )
+                raise SinexFileError("Invalid coordinate xyz or params specified for mark " + mark)
             vparams = list(vparams)
         else:
             vparams = None
 
         solnid = "{0:04d}".format(len(self._marks[mark].solutions) + 1)
-        self._marks[mark].solutions.append(
-            Writer.Solution(
-                solnid, xyz, params, vxyz, vparams, startdate, enddate, crddate
-            )
-        )
+        self._marks[mark].solutions.append(Writer.Solution(solnid, xyz, params, vxyz, vparams, startdate, enddate, crddate))
 
     def setCovariance(self, covariance, varianceFactor=1.0):
         """
@@ -972,9 +911,7 @@ class Writer(object):
         if self._written:
             raise SinexFileError("Cannot write already written SINEX file")
         if len(self._covariance) is None:
-            raise SinexFileError(
-                "Cannot write SINEX file: no covariance matrix defined"
-            )
+            raise SinexFileError("Cannot write SINEX file: no covariance matrix defined")
         # After this point supplied data may be modified!
         self._written = True
         marks = []
@@ -982,16 +919,12 @@ class Writer(object):
         covarprms = [-1]
         marklist = {}
         prmid = 0
-        for m in sorted(
-            list(self._marks.values()), key=lambda m: (m.id, m.code, m.monument)
-        ):
+        for m in sorted(list(self._marks.values()), key=lambda m: (m.id, m.code, m.monument)):
             if len(m.solutions) == 0:
                 continue
             key = (m.id, m.code, m.monument)
             if key in marklist:
-                raise SinexFileError(
-                    "Duplicate mark ({0} {1} {2} in SINEX file".format(*key)
-                )
+                raise SinexFileError("Duplicate mark ({0} {1} {2} in SINEX file".format(*key))
             marklist[key] = 1
             marks.append(m)
             for s in m.solutions:
@@ -1006,9 +939,7 @@ class Writer(object):
                         s.params[i] = prmid
 
         if prmid == 0:
-            raise SinexFileError(
-                "Cannot write SINEX file: no solution coordinates defined"
-            )
+            raise SinexFileError("Cannot write SINEX file: no solution coordinates defined")
 
         startdate = self._startdate or datetime.now()
         enddate = self._enddate or datetime.now()
@@ -1036,11 +967,7 @@ class Writer(object):
                 "HARDWARE",
                 "INPUT",
             ):
-                sf.write(
-                    " {0:18.18s} {1:.60s}\n".format(
-                        item, self._fileRefInfo.get(item, "") or "N/A"
-                    )
-                )
+                sf.write(" {0:18.18s} {1:.60s}\n".format(item, self._fileRefInfo.get(item, "") or "N/A"))
             sf.write("-FILE/REFERENCE\n")
 
             if len(self._comments) > 0:
@@ -1093,22 +1020,10 @@ class Writer(object):
 
             if self.stats is not None:
                 sf.write("+SOLUTION/STATISTICS\n")
-                sf.write(
-                    " {0:30.30s} {1:22.15e}\n".format("VARIANCE FACTOR", self.stats[0])
-                )
-                sf.write(
-                    " {0:30.30s} {1:22.15e}\n".format(
-                        "SUM OR SQUARED RESIDUALS", self.stats[1]
-                    )
-                )
-                sf.write(
-                    " {0:30.30s} {1:22d}\n".format(
-                        "NUMBER OF OBSERVATIONS", self.stats[2]
-                    )
-                )
-                sf.write(
-                    " {0:30.30s} {1:22d}\n".format("NUMBER OF UNKNOWNS", self.stats[3])
-                )
+                sf.write(" {0:30.30s} {1:22.15e}\n".format("VARIANCE FACTOR", self.stats[0]))
+                sf.write(" {0:30.30s} {1:22.15e}\n".format("SUM OR SQUARED RESIDUALS", self.stats[1]))
+                sf.write(" {0:30.30s} {1:22d}\n".format("NUMBER OF OBSERVATIONS", self.stats[2]))
+                sf.write(" {0:30.30s} {1:22d}\n".format("NUMBER OF UNKNOWNS", self.stats[3]))
                 sf.write("-SOLUTION/STATISTICS\n")
 
             sf.write("+SOLUTION/ESTIMATE\n")
@@ -1118,9 +1033,7 @@ class Writer(object):
                     startdate = s.startdate or startdate
                     enddate = s.enddate or enddate
                     diff = enddate - startdate
-                    crddate = s.crddate or startdate + timedelta(
-                        seconds=diff.total_seconds() / 2
-                    )
+                    crddate = s.crddate or startdate + timedelta(seconds=diff.total_seconds() / 2)
                     for crd, value, prmno in zip(crds, s.xyz, s.params):
                         cvrprm = covarprms[prmno]
                         stderr = math.sqrt(varf * self._covariance[cvrprm, cvrprm])

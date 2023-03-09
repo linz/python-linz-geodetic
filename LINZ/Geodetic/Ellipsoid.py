@@ -1,10 +1,11 @@
 # /usr/bin/python3
 
-import numpy as np
 import math
 
+import numpy as np
 
-class Ellipsoid(object):
+
+class Ellipsoid:
 
     convergence = 1.0e-10
 
@@ -160,9 +161,8 @@ GRS80 = Ellipsoid(6378137.0, 298.257222101)
 
 
 def main():
-    import sys
     import argparse
-    import re
+    import sys
 
     parser = argparse.ArgumentParser(
         description="Convert Cartesian coordinates <=> Geodetic coordinates"
@@ -247,12 +247,12 @@ def main():
 
     if args.xyz:
         llh = ell.geodetic(args.xyz)
-        print("{0:.9f} {1:.9f} {2:.4f}".format(*llh))
+        print(f"{llh[0]:.9f} {llh[1]:.9f} {llh[2]:.4f}")
         sys.exit()
 
     if args.geodetic:
         xyz = ell.xyz(args.geodetic)
-        print("{0:.4f} {1:.4f} {2:.4f}".format(*xyz))
+        print("{xyz[0]:.4f} {1:.4f} {2:.4f}")
         sys.exit()
 
     tfm = ell.geodetic if args.calc_geodetic else ell.xyz
@@ -272,7 +272,9 @@ def main():
     if args.input_file:
         cols = [0, 1, 2]
         reqlen = 3
-        with sys.stdin if input_file == "-" else open(input_file, "r") as fin:
+        with sys.stdin if input_file == "-" else open(
+            input_file, "r", encoding="utf8"
+        ) as fin:
             import csv
 
             if args.csv:
@@ -284,7 +286,9 @@ def main():
                         yield l.split()
 
                 freader = wsreader(fin)
-            with sys.stdout if output_file == "-" else open(output_file, "w") as fout:
+            with sys.stdout if output_file == "-" else open(
+                output_file, "w", encoding="utf8"
+            ) as fout:
                 if args.csv:
                     writerow = csv.writer(fout).writerow
                 else:
