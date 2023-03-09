@@ -38,27 +38,17 @@ class SinexTestCase(fileunittest.TestCase):
             "test001: getSolutionIds(KAIK,2)",
             snx.getSolutionIds(ptid="KAIK", solnid="2"),
         )
-        self.check(
-            "test001: getSolutionIds(KAIK:A) single", snx.getSolutionIds("KAIK:A")
-        )
-        self.check(
-            "test001: getSolutionIds(KAIK:B) single", snx.getSolutionIds("KAIK:B")
-        )
-        self.check(
-            "test001: getSolutionIds(KAIK:A:1) single", snx.getSolutionIds("KAIK:A:1")
-        )
-        self.check(
-            "test001: getSolutionIds(KAIK:A:2) single", snx.getSolutionIds("KAIK:A:2")
-        )
+        self.check("test001: getSolutionIds(KAIK:A) single", snx.getSolutionIds("KAIK:A"))
+        self.check("test001: getSolutionIds(KAIK:B) single", snx.getSolutionIds("KAIK:B"))
+        self.check("test001: getSolutionIds(KAIK:A:1) single", snx.getSolutionIds("KAIK:A:1"))
+        self.check("test001: getSolutionIds(KAIK:A:2) single", snx.getSolutionIds("KAIK:A:2"))
 
     def test002_ReaderGet(self):
         """
         Test get (no velocities)
         """
 
-        snx = Sinex.Reader(
-            SinexTestCase.sinexfile1, covariance=Sinex.COVAR_FULL, velocities=False
-        )
+        snx = Sinex.Reader(SinexTestCase.sinexfile1, covariance=Sinex.COVAR_FULL, velocities=False)
         self.check("test002: get(KAIK)", snx.get("KAIK"))
         self.check("test002: get(solutions(0))", snx.get(snx.solutions()[0]))
         self.check("test002: get(solution(KAIK A))", snx.get("KAIK", ptcode="A"))
@@ -67,53 +57,31 @@ class SinexTestCase(fileunittest.TestCase):
         """
         Test getSolutions (no velocities)
         """
-        snx = Sinex.Reader(
-            SinexTestCase.sinexfile1, covariance=Sinex.COVAR_FULL, velocities=False
-        )
+        snx = Sinex.Reader(SinexTestCase.sinexfile1, covariance=Sinex.COVAR_FULL, velocities=False)
         solutions = snx.solutions()
         self.check("test003: getsolutions(0)", snx.getSolutions(solutions[0:1]))
         self.check("test003: getsolutions(1:3))", snx.getSolutions(solutions[1:3]))
-        snx = Sinex.Reader(
-            SinexTestCase.sinexfile1, covariance=Sinex.COVAR_STATION, velocities=False
-        )
-        self.check(
-            "test003: getsolutions(0) stn covar", snx.getSolutions(solutions[0:1])
-        )
-        self.check(
-            "test003: getsolutions(1:3)) stn covar", snx.getSolutions(solutions[1:3])
-        )
-        snx = Sinex.Reader(
-            SinexTestCase.sinexfile1, covariance=Sinex.COVAR_NONE, velocities=False
-        )
-        self.check(
-            "test003: getsolutions(0) stn none", snx.getSolutions(solutions[0:1])
-        )
-        self.check(
-            "test003: getsolutions(1:3)) stn none", snx.getSolutions(solutions[1:3])
-        )
+        snx = Sinex.Reader(SinexTestCase.sinexfile1, covariance=Sinex.COVAR_STATION, velocities=False)
+        self.check("test003: getsolutions(0) stn covar", snx.getSolutions(solutions[0:1]))
+        self.check("test003: getsolutions(1:3)) stn covar", snx.getSolutions(solutions[1:3]))
+        snx = Sinex.Reader(SinexTestCase.sinexfile1, covariance=Sinex.COVAR_NONE, velocities=False)
+        self.check("test003: getsolutions(0) stn none", snx.getSolutions(solutions[0:1]))
+        self.check("test003: getsolutions(1:3)) stn none", snx.getSolutions(solutions[1:3]))
 
     def test004_ReaderXYZ(self):
         """
         Test xyz function
         """
-        snx = Sinex.Reader(
-            SinexTestCase.sinexfile1, covariance=Sinex.COVAR_FULL, velocities=False
-        )
+        snx = Sinex.Reader(SinexTestCase.sinexfile1, covariance=Sinex.COVAR_FULL, velocities=False)
         self.check("test004: xyz KAIK", snx.xyz("KAIK"))
         self.check("test004: xyz KAIK tuple", snx.xyz(("KAIK", "A", "1")))
         self.check("test004: xyz KAIK A 1", snx.xyz("KAIK:A:1"))
         self.check("test004: xyz KAIK with covar", snx.xyz("KAIK", covariance=True))
         self.checkRun("test004: xyz ABCD", lambda: snx.xyz("ABCD"))
-        snx = Sinex.Reader(
-            SinexTestCase.sinexfile1, covariance=Sinex.COVAR_STATION, velocities=False
-        )
+        snx = Sinex.Reader(SinexTestCase.sinexfile1, covariance=Sinex.COVAR_STATION, velocities=False)
         self.check("test004: stn covar xyz KAIK", snx.xyz("KAIK"))
-        self.check(
-            "test004: stn covar xyz KAIK with covar", snx.xyz("KAIK", covariance=True)
-        )
-        snx = Sinex.Reader(
-            SinexTestCase.sinexfile1, covariance=Sinex.COVAR_NONE, velocities=False
-        )
+        self.check("test004: stn covar xyz KAIK with covar", snx.xyz("KAIK", covariance=True))
+        snx = Sinex.Reader(SinexTestCase.sinexfile1, covariance=Sinex.COVAR_NONE, velocities=False)
         self.check("test004: no covar xyz KAIK", snx.xyz("KAIK"))
         self.checkRun(
             "test004: no covar xyz KAIK with covar",
@@ -124,9 +92,7 @@ class SinexTestCase(fileunittest.TestCase):
         """
         Test dxyz function
         """
-        snx = Sinex.Reader(
-            SinexTestCase.sinexfile1, covariance=Sinex.COVAR_FULL, velocities=False
-        )
+        snx = Sinex.Reader(SinexTestCase.sinexfile1, covariance=Sinex.COVAR_FULL, velocities=False)
         self.check("test005: dxyz 1163 KAIK", snx.dxyz("1163", "KAIK"))
         self.check("test005: dxyz KAIK 1163", snx.dxyz("KAIK", "1163"))
         self.checkRun("test005: dxyz KAIK KAIK", lambda: snx.dxyz("KAIK", "KAIK"))

@@ -164,9 +164,7 @@ def main():
     import argparse
     import sys
 
-    parser = argparse.ArgumentParser(
-        description="Convert Cartesian coordinates <=> Geodetic coordinates"
-    )
+    parser = argparse.ArgumentParser(description="Convert Cartesian coordinates <=> Geodetic coordinates")
     parser.add_argument(
         "-e",
         "--ellipsoid",
@@ -265,16 +263,12 @@ def main():
 
     incol = xcol if args.calc_geodetic else gcol
     outcol = gcol if args.calc_geodetic else xcol
-    colfmt = (
-        ["{0:.9f}", "{0:.9f}", "{0:.4f}"] if args.calc_geodetic else ["{0:.4f}"] * 3
-    )
+    colfmt = ["{0:.9f}", "{0:.9f}", "{0:.4f}"] if args.calc_geodetic else ["{0:.4f}"] * 3
 
     if args.input_file:
         cols = [0, 1, 2]
         reqlen = 3
-        with sys.stdin if input_file == "-" else open(
-            input_file, "r", encoding="utf8"
-        ) as fin:
+        with sys.stdin if input_file == "-" else open(input_file, "r", encoding="utf8") as fin:
             import csv
 
             if args.csv:
@@ -286,9 +280,7 @@ def main():
                         yield l.split()
 
                 freader = wsreader(fin)
-            with sys.stdout if output_file == "-" else open(
-                output_file, "w", encoding="utf8"
-            ) as fout:
+            with sys.stdout if output_file == "-" else open(output_file, "w", encoding="utf8") as fout:
                 if args.csv:
                     writerow = csv.writer(fout).writerow
                 else:

@@ -25,16 +25,12 @@ class ITRFTestCase(fileunittest.TestCase):
         self.check("test002 BW transform 2020", str(tf))
         tf2 = tf.atDate(2020.0)
         self.check("test002 BW transform 2020 at 2020", str(tf))
-        self.check(
-            "test002 BW apply1", tf2.transform([-4761241.541, 754106.577, -4162423.201])
-        )
+        self.check("test002 BW apply1", tf2.transform([-4761241.541, 754106.577, -4162423.201]))
         self.check(
             "test002 BW apply2",
             tf.transform([-4761241.541, 754106.577, -4162423.201], 2020.0),
         )
-        self.check(
-            "test002 BW apply3", tf.transform([-4761241.541, 754106.577, -4162423.201])
-        )
+        self.check("test002 BW apply3", tf.transform([-4761241.541, 754106.577, -4162423.201]))
         self.check("test002 BW apply4", tf.transformLonLat([171.28, -41.54, 34.0]))
 
 

@@ -63,9 +63,7 @@ class TestCase(unittest.TestCase):
                 data = rf.read()
         except:
             pass
-        resultRe = re.compile(
-            r"^\>\>\>\>\s+(\w+)\s*(.*?)(?=^\>\>\>\>)", re.MULTILINE | re.DOTALL
-        )
+        resultRe = re.compile(r"^\>\>\>\>\s+(\w+)\s*(.*?)(?=^\>\>\>\>)", re.MULTILINE | re.DOTALL)
         for test, result in resultRe.findall(data):
             TestCase.testResults[test] = result.strip()
 
@@ -99,9 +97,7 @@ class TestCase(unittest.TestCase):
         testcode = re.sub(r"\W", "_", testcode)
         if dumpResults:
             self.dumpfh.write(">>>> " + testcode + " ")
-            self.dumpfh.write(
-                output if isinstance(output, stringtype) else repr(output)
-            )
+            self.dumpfh.write(output if isinstance(output, stringtype) else repr(output))
             self.dumpfh.write("\n")
         else:
             message = message or testname + " incorrect"
@@ -143,9 +139,7 @@ class TestCase(unittest.TestCase):
             if not message.endswith("]"):
                 message = message + " "
             for k in list(expected.keys()):
-                self.checkEqual(
-                    output[k], expected[k], message + "[{0}]".format(k), delta
-                )
+                self.checkEqual(output[k], expected[k], message + "[{0}]".format(k), delta)
         elif hasattr(output, "__getitem__"):
             if not message.endswith("]"):
                 message = message + " "
