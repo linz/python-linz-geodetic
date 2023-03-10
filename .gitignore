@@ -13,3 +13,4 @@ debian/debhelper.log
 debian/substvars
 debian/files
 debian/.debhelper
+garbage
