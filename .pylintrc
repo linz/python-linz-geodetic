@@ -1,0 +1,13 @@
+[MASTER]
+disable =
+        bad-continuation,
+        invalid-name,
+        missing-module-docstring,
+        missing-function-docstring,
+        protected-access,
+        global-statement
+        
+[FORMAT]
+max-line-length=127
+[MISCELLANEOUS]
+notes=FIXME,XXX
