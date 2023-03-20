@@ -5,6 +5,7 @@ description = "LINZ.geodetic module - miscellanous geodetic functions"
 authors = ["Chris Crook <ccrook@linz.govt.nz>"]
 license = "MIT"
 readme = "README.md"
+homepage = "https://github.com/linz/python-linz-geodetic"
 packages = [{include = "LINZ"}]
 
 [tool.poetry.dependencies]

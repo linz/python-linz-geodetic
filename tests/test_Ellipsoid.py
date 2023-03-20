@@ -1,15 +1,15 @@
 # Imports to support python 3 compatibility
 
-import sys
 import os.path
+import sys
 
 sys.path.insert(
     0,
     os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "LINZ", "Geodetic"),
 )
 
-import fileunittest
 import Ellipsoid
+import fileunittest
 
 
 class EllipsoidTestCase(fileunittest.TestCase):

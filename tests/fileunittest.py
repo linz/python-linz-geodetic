@@ -1,8 +1,9 @@
-import sys
 import os
 import os.path
 import re
+import sys
 import unittest
+
 import numpy as np
 from numpy import array
 

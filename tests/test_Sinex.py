@@ -1,5 +1,5 @@
-import sys
 import os.path
+import sys
 from datetime import datetime
 
 testdir = os.path.dirname(os.path.abspath(__file__))
