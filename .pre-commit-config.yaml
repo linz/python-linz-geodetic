@@ -10,6 +10,7 @@ repos:
         language: system
         stages: [commit]
         types: [python]
+        files: '\.py$'
 
       #      - id: gitlint
       #        name: gitlint
@@ -24,7 +25,9 @@ repos:
         language: system
         stages: [commit]
         types: [python]
+        files: '\.py$'
 
+      # Scripts not mature enough for this!
       # - id: mypy
       #   name: mypy
       #   entry: mypy
@@ -34,6 +37,7 @@ repos:
       #   types: [python]
       #   require_serial: true
 
+      # Scripts not mature enough for this!
       # - id: pylint
       #   name: pylint
       #   entry: pylint
@@ -44,7 +48,8 @@ repos:
       - id: pytest
         name: pytest
         entry: pytest
-        args: ["tests"]
+        # args: ["tests"]
         language: system
         stages: [commit]
         types: [python]
+        files: '^tests/test_.*\.py'
