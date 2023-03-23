@@ -1,5 +1,6 @@
 # /usr/bin/python3
 
+
 import math
 
 import numpy as np
@@ -16,6 +17,7 @@ class Ellipsoid:
 
     @staticmethod
     def enu_axes(lon, lat):
+
         """
         Returns an array defining the east, north, and up unit vectors
         at a specified latitude and longitude
