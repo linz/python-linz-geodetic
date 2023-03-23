@@ -26,6 +26,8 @@ class Ellipsoid:
            denu=enu_axes.dot(dxyz)
            dxyz=enu_axes.T.dot(denu)
 
+        all ok
+
         """
         cln, sln = Ellipsoid._cossin(lon)
         clt, slt = Ellipsoid._cossin(lat)
