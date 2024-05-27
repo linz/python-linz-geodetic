@@ -1,3 +1,10 @@
+python-linz-geodetic (1.9.0-1linz~trusty1) trusty; urgency=medium
+
+  * Fixing error ITRF2014 parameters
+  * Adding ITRF2020 parameters
+
+ -- Chris Crook <ccrook@linz.govt.nz>  Tue, 28 May 2024 09:00:00 +1300
+
 python-linz-geodetic (1.8.1-1linz~trusty1) trusty; urgency=medium
 
   * Fixing error in Sinex.Writer end date

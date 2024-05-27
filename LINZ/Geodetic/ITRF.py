@@ -94,9 +94,14 @@ import numpy as np
 
 ITRF_params = (
     (
+        "ITRF2020",
+        (-5.0, -4.59, 15.87, -0.66901, 0.16508, -0.26897, -0.11984),
+        (-0.79, 0.7, 1.24, 0.07201, 0.01347, -0.01514, -0.01973),
+    ),
+    (
         "ITRF2014",
-        (-3.2, -0.19, 21.07, -1.72901, 0.16508, -0.26897, -0.11984),
-        (-0.79, 0.6, 1.24, 0.13201, 0.01347, -0.01514, -0.01973),
+        (-6.4, -3.99, 14.27, -1.08901, 0.16508, -0.26897, -0.11984),
+        (-0.79, 0.6, 1.44, 0.07201, 0.01347, -0.01514, -0.01973),
     ),
     (
         "ITRF2008",
@@ -174,21 +179,35 @@ class BursaWolf14Transformation(object):
             + " to "
             + self.rfto
             + "\n"
-            + (" Reference date {0:.1f}\n".format(self.refdate) if self.rates and self.refdate else "")
-            + "   Translations {0:.2f}  {1:.2f}  {2:.2f} mm\n".format(*self.params[0:3])
             + (
-                "          rates {0:.2f}  {1:.2f}  {2:.2f} mm/yr\n".format(*self.rates[0:3])
+                " Reference date {0:.1f}\n".format(self.refdate)
                 if self.rates and self.refdate
                 else ""
             )
-            + "      Rotations {0:.5f}  {1:.5f}  {2:.5f} mas\n".format(*self.params[4:7])
+            + "   Translations {0:.2f}  {1:.2f}  {2:.2f} mm\n".format(*self.params[0:3])
             + (
-                "          rates {0:.5f}  {1:.5f}  {2:.5f} mas/yr\n".format(*self.rates[4:7])
+                "          rates {0:.2f}  {1:.2f}  {2:.2f} mm/yr\n".format(
+                    *self.rates[0:3]
+                )
+                if self.rates and self.refdate
+                else ""
+            )
+            + "      Rotations {0:.5f}  {1:.5f}  {2:.5f} mas\n".format(
+                *self.params[4:7]
+            )
+            + (
+                "          rates {0:.5f}  {1:.5f}  {2:.5f} mas/yr\n".format(
+                    *self.rates[4:7]
+                )
                 if self.rates and self.refdate
                 else ""
             )
             + "          Scale {0:.5f}  ppb\n".format(self.params[3])
-            + ("          rates {0:.5f} ppb/yr\n".format(self.rates[3]) if self.rates and self.refdate else "")
+            + (
+                "          rates {0:.5f} ppb/yr\n".format(self.rates[3])
+                if self.rates and self.refdate
+                else ""
+            )
         )
 
     def reversed(self):
@@ -210,7 +229,9 @@ class BursaWolf14Transformation(object):
             for i, r in enumerate(self.rates):
                 p[i] = self.params[i] + r * diff
             refdate = date
-        return BursaWolf14Transformation(self.rffrom, self.rfto, p, self.rates, refdate, self.source)
+        return BursaWolf14Transformation(
+            self.rffrom, self.rfto, p, self.rates, refdate, self.source
+        )
 
     def add(self, other):
         if self.rffrom == other.rfto:
@@ -220,7 +241,9 @@ class BursaWolf14Transformation(object):
             rffrom = self.rffrom
             rfto = other.rfto
         else:
-            raise RuntimeError("Cannot join incompatible transformations (must have common start/end reference frame")
+            raise RuntimeError(
+                "Cannot join incompatible transformations (must have common start/end reference frame"
+            )
 
         refdate = self.refdate if self.refdate is not None else other.refdate
         if refdate and refdate != other.refdate:
@@ -233,9 +256,11 @@ class BursaWolf14Transformation(object):
             (
                 self.rates
                 if other.rates is None
-                else other.rates
-                if self.rates is None
-                else [p1 + p2 for p1, p2 in zip(self.rates, other.rates)]
+                else (
+                    other.rates
+                    if self.rates is None
+                    else [p1 + p2 for p1, p2 in zip(self.rates, other.rates)]
+                )
             ),
             refdate,
             self.source if self.source == other.source else None,
@@ -254,13 +279,18 @@ class BursaWolf14Transformation(object):
         """
         if self.rates is not None and self.refdate is not None and date is not None:
             diff = dateAsYear(date) - self.refdate
-            params = [(p + r * diff) * s for p, r, s in zip(self.params, self.rates, scalefactors)]
+            params = [
+                (p + r * diff) * s
+                for p, r, s in zip(self.params, self.rates, scalefactors)
+            ]
         else:
             params = [p * s for p, s in zip(self.params, scalefactors)]
         txyz = np.array([params[0:3]])
         scale = params[3]
         (rx, ry, rz) = params[4:7]
-        rxyz = np.transpose(np.array([[scale, -rz, ry], [rz, scale, -rx], [-ry, rx, scale]]))
+        rxyz = np.transpose(
+            np.array([[scale, -rz, ry], [rz, scale, -rx], [-ry, rx, scale]])
+        )
 
         def tf(coords):
             if not isinstance(coords, np.ndarray):
@@ -320,7 +350,9 @@ def Transformation(to_itrf=ITRF_ref, from_itrf=ITRF_ref):
             if from_itrf == ITRF_ref:
                 return rfto
         if p[0] == from_itrf:
-            rffrom = BursaWolf14Transformation(ITRF_ref, p[0], p[1], p[2], refdate).reversed()
+            rffrom = BursaWolf14Transformation(
+                ITRF_ref, p[0], p[1], p[2], refdate
+            ).reversed()
             if to_itrf == ITRF_ref:
                 return rffrom
     if not rffrom:
@@ -339,15 +371,23 @@ def main():
     import re
     import sys
 
-    parser = argparse.ArgumentParser(description="Convert Cartesian coordinates between ITRF systems")
-    parser.add_argument("-f", "--from-itrf", default="ITRF2008", help="Source ITRF - default ITRF2008")
-    parser.add_argument("-t", "--to-itrf", default="ITRF96", help="Target ITRF - default ITRF96")
+    parser = argparse.ArgumentParser(
+        description="Convert Cartesian coordinates between ITRF systems"
+    )
+    parser.add_argument(
+        "-f", "--from-itrf", default="ITRF2008", help="Source ITRF - default ITRF2008"
+    )
+    parser.add_argument(
+        "-t", "--to-itrf", default="ITRF96", help="Target ITRF - default ITRF96"
+    )
     parser.add_argument(
         "-d",
         "--date",
         help="Transformation date (yyyymmdd or yyyy.yyy) - default today",
     )
-    parser.add_argument("-l", "--list", action="store_true", help="List transformation parameters")
+    parser.add_argument(
+        "-l", "--list", action="store_true", help="List transformation parameters"
+    )
     parser.add_argument(
         "-x",
         "--xyz",
@@ -369,8 +409,12 @@ def main():
         nargs=3,
         help="Column names of X,Y,Z fields - default first three columns",
     )
-    parser.add_argument("-g", "--geodetic", action="store_true", help="Coordinates are lon,lat,hgt")
-    parser.add_argument("-v", "--verbose", action="store_true", help="More verbose output")
+    parser.add_argument(
+        "-g", "--geodetic", action="store_true", help="Coordinates are lon,lat,hgt"
+    )
+    parser.add_argument(
+        "-v", "--verbose", action="store_true", help="More verbose output"
+    )
     parser.add_argument("input_file", nargs="?", help="Input file of XYZ coordinates")
     parser.add_argument("output_file", nargs="?", help="Output file of XYZ coordinates")
 
@@ -423,7 +467,9 @@ def main():
     if args.list:
         print(tfm)
     elif args.verbose:
-        print("Transforming from {0} to {1} at {2:.2f}".format(from_itrf, to_itrf, year))
+        print(
+            "Transforming from {0} to {1} at {2:.2f}".format(from_itrf, to_itrf, year)
+        )
 
     if args.geodetic:
         transfunc = tfm.transformLonLat
