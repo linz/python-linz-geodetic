@@ -250,7 +250,7 @@ def main():
 
     if args.geodetic:
         xyz = ell.xyz(args.geodetic)
-        print("{xyz[0]:.4f} {1:.4f} {2:.4f}")
+        print(f"{xyz[0]:.4f} {xyz[1]:.4f} {xyz[2]:.4f}")
         sys.exit()
 
     tfm = ell.geodetic if args.calc_geodetic else ell.xyz
